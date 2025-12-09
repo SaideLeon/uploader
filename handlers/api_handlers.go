@@ -1,0 +1,340 @@
+package handlers
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/config"
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/middleware"
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/models"
+)
+
+// --- Structs para Respostas ---
+
+type UploadResponse struct {
+	Message string `json:"message"`
+	URL     string `json:"url"`
+	Project string `json:"project"`
+	File    string `json:"file"`
+}
+
+type FileInfo struct {
+	Name       string    `json:"name"`
+	URL        string    `json:"url"`
+	Size       int64     `json:"size"`
+	UploadedAt time.Time `json:"uploaded_at"`
+}
+
+type ListResponse struct {
+	Project string     `json:"project"`
+	Files   []FileInfo `json:"files"`
+	Total   int64      `json:"total"`
+	Page    int        `json:"page"`
+	PerPage int        `json:"per_page"`
+}
+
+type ProjectInfo struct {
+	Name      string `json:"name"`
+	FileCount int64  `json:"file_count"`
+	TotalSize int64  `json:"total_size"`
+}
+
+type ProjectsResponse struct {
+	Projects []ProjectInfo `json:"projects"`
+	Total    int           `json:"total"`
+	Page     int           `json:"page"`
+	PerPage  int           `json:"per_page"`
+}
+
+// --- Funções Utilitárias ---
+
+func sanitizeProjectName(project string) string {
+	project = strings.TrimSpace(project)
+	project = strings.ToLower(project)
+	project = strings.ReplaceAll(project, "..", "")
+	project = strings.ReplaceAll(project, "/", "-")
+	project = strings.ReplaceAll(project, \", "-")
+	if project == "" {
+		project = "default"
+	}
+	return project
+}
+
+func getPaginationParams(r *http.Request) (page, perPage int) {
+	page, _ = strconv.Atoi(r.URL.Query().Get("page"))
+	if page <= 0 {
+		page = 1
+	}
+	perPage, _ = strconv.Atoi(r.URL.Query().Get("per_page"))
+	if perPage <= 0 {
+		perPage = 10
+	}
+	return page, perPage
+}
+
+const (
+	MaxUploadSize = 10 * 1024 * 1024 // 10 MB
+)
+
+var (
+	AllowedMimeTypes = map[string]bool{
+		"image/jpeg":      true,
+		"image/png":       true,
+		"application/pdf": true,
+	}
+)
+
+// --- Handlers ---
+
+// UploadHandler lida com o upload de arquivos para um projeto de um usuário
+func UploadHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := r.Context().Value(middleware.UserContextKey).(*models.User)
+		if !ok {
+			http.Error(w, "Could not retrieve user from context", http.StatusInternalServerError)
+			return
+		}
+
+		// Limita o tamanho do corpo da requisição
+		r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
+		if err := r.ParseMultipartForm(MaxUploadSize); err != nil {
+			http.Error(w, "File is too large. Max size is 10MB.", http.StatusBadRequest)
+			return
+		}
+
+		project_name := r.FormValue("project")
+		project_name = sanitizeProjectName(project_name)
+
+		file, header, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, "Error reading file: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+
+		// Valida o MIME type
+		mimeType := header.Header.Get("Content-Type")
+		if !AllowedMimeTypes[mimeType] {
+			http.Error(w, "Invalid file type. Allowed types are: jpeg, png, pdf.", http.StatusUnsupportedMediaType)
+			return
+		}
+
+		var project models.Project
+		if err := db.FirstOrCreate(&project, models.Project{Name: project_name, UserID: user.ID}).Error; err != nil {
+			http.Error(w, "Could not find or create project: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		timestamp := time.Now().Format("20060102-150405")
+		ext := filepath.Ext(header.Filename)
+		name := strings.TrimSuffix(header.Filename, ext)
+		safeName := fmt.Sprintf("%s-%s%s", name, timestamp, ext)
+
+		userDir := filepath.Join("./uploads", fmt.Sprintf("user_%d", user.ID))
+		projectDir := filepath.Join(userDir, project.Name)
+		if err := os.MkdirAll(projectDir, os.ModePerm); err != nil {
+			http.Error(w, "Could not create project directory: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		filePath := filepath.Join(projectDir, safeName)
+		dst, err := os.Create(filePath)
+		if err != nil {
+			http.Error(w, "Could not save file: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer dst.Close()
+
+		size, err := io.Copy(dst, file)
+		if err != nil {
+			http.Error(w, "Error saving file content: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		dbFile := models.File{
+			Name:      safeName,
+			Path:      filePath,
+			Size:      size,
+			MimeType:  header.Header.Get("Content-Type"),
+			ProjectID: project.ID,
+		}
+		if err := db.Create(&dbFile).Error; err != nil {
+			http.Error(w, "Could not save file metadata: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		publicURL := fmt.Sprintf("%s/files/user_%d/%s/%s", config.AppConfig.Domain, user.ID, project.Name, safeName)
+		resp := UploadResponse{
+			Message: "File uploaded successfully",
+			URL:     publicURL,
+			Project: project.Name,
+			File:    safeName,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+// ProjectsHandler lista os projetos do usuário
+func ProjectsHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
+		page, perPage := getPaginationParams(r)
+		offset := (page - 1) * perPage
+
+		var projects []models.Project
+		db.Where("user_id = ?", user.ID).Limit(perPage).Offset(offset).Find(&projects)
+
+		var projectInfos []ProjectInfo
+		for _, p := range projects {
+			var fileCount int64
+			var totalSize int64
+			db.Model(&models.File{}).Where("project_id = ?", p.ID).Count(&fileCount)
+			db.Model(&models.File{}).Select("sum(size)").Where("project_id = ?", p.ID).Row().Scan(&totalSize)
+
+			projectInfos = append(projectInfos, ProjectInfo{
+				Name:      p.Name,
+				FileCount: fileCount,
+				TotalSize: totalSize,
+			})
+		}
+
+		var totalProjects int64
+		db.Model(&models.Project{}).Where("user_id = ?", user.ID).Count(&totalProjects)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ProjectsResponse{
+			Projects: projectInfos,
+			Total:    int(totalProjects),
+			Page:     page,
+			PerPage:  perPage,
+		})
+	}
+}
+
+// ListHandler lista os arquivos de um projeto
+func ListHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
+		projectName := r.URL.Query().Get("project")
+		if projectName == "" {
+			http.Error(w, "Project name is required", http.StatusBadRequest)
+			return
+		}
+
+		page, perPage := getPaginationParams(r)
+		offset := (page - 1) * perPage
+
+		var project models.Project
+		if err := db.First(&project, "name = ? AND user_id = ?", projectName, user.ID).Error; err != nil {
+			http.Error(w, "Project not found", http.StatusNotFound)
+			return
+		}
+
+		var files []models.File
+		db.Where("project_id = ?", project.ID).Limit(perPage).Offset(offset).Find(&files)
+
+		var fileInfos []FileInfo
+		domain := config.AppConfig.Domain
+		for _, f := range files {
+			fileInfos = append(fileInfos, FileInfo{
+				Name:       f.Name,
+				URL:        fmt.Sprintf("%s/files/user_%d/%s/%s", domain, user.ID, projectName, f.Name),
+				Size:       f.Size,
+				UploadedAt: f.UploadedAt,
+			})
+		}
+
+		var totalFiles int64
+		db.Model(&models.File{}).Where("project_id = ?", project.ID).Count(&totalFiles)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ListResponse{
+			Project: projectName,
+			Files:   fileInfos,
+			Total:   totalFiles,
+			Page:    page,
+			PerPage: perPage,
+		})
+	}
+}
+
+// DeleteHandler deleta um arquivo
+func DeleteHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
+		projectName := r.URL.Query().Get("project")
+		fileName := r.URL.Query().Get("file")
+
+		if projectName == "" || fileName == "" {
+			http.Error(w, "'project' and 'file' parameters are required", http.StatusBadRequest)
+			return
+		}
+
+		var project models.Project
+		if err := db.First(&project, "name = ? AND user_id = ?", projectName, user.ID).Error; err != nil {
+			http.Error(w, "Project not found", http.StatusNotFound)
+			return
+		}
+
+		var file models.File
+		if err := db.First(&file, "name = ? AND project_id = ?", fileName, project.ID).Error; err != nil {
+			http.Error(w, "File not found", http.StatusNotFound)
+			return
+		}
+
+		// Deleta o arquivo do filesystem
+		if err := os.Remove(file.Path); err != nil {
+			// Logar o erro, mas continuar para remover do DB
+			fmt.Printf("Could not delete file from filesystem: %s\n", err.Error())
+		}
+
+		// Deleta o registro do banco de dados
+		if err := db.Delete(&file).Error; err != nil {
+			http.Error(w, "Could not delete file metadata: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "File deleted successfully",
+			"project": projectName,
+			"file":    fileName,
+		})
+	}
+}
+
+// RotateAPIKeyHandler gera uma nova API key para o usuário
+func RotateAPIKeyHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := r.Context().Value(middleware.UserContextKey).(*models.User)
+		if !ok {
+			http.Error(w, "Could not retrieve user from context", http.StatusInternalServerError)
+			return
+		}
+
+		newAPIKey := uuid.New().String()
+		if err := db.Model(&user).Update("forge_api_key", newAPIKey).Error; err != nil {
+			http.Error(w, "Could not rotate API key: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message":       "API key rotated successfully",
+			"new_api_key": newAPIKey,
+		})
+	}
+}

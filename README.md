@@ -1,231 +1,149 @@
-# 📦 Upload Service - Organização por Projetos
+# 🚀 Forge Uploader - API Segura de Upload de Arquivos
 
-Serviço de upload de arquivos com organização automática por projetos/diretórios.
+O Forge Uploader é um serviço de upload de arquivos robusto e seguro, construído em Go. Ele oferece autenticação de usuários, gerenciamento de chaves de API, organização de arquivos por projetos e políticas de segurança avançadas.
+
+## ✨ Features
+- **Autenticação de Usuários**: Sistema de contas com E-mail/Senha e autenticação baseada em JWT.
+- **Chave de API**: Cada usuário recebe uma `FORGE_API_KEY` para autenticar requisições.
+- **Namespace por Usuário**: Cada usuário tem seu próprio escopo de projetos, garantindo isolamento e segurança.
+- **Políticas de Segurança**:
+  - Limite de tamanho de arquivo (10MB por upload).
+  - Validação de Mime-Type (`image/jpeg`, `image/png`, `application/pdf`).
+  - Rate Limiting (100 uploads por dia por usuário).
+  - Logs de auditoria para todas as requisições.
+- **Paginação**: Endpoints de listagem (`/api/projects`, `/api/list`) são paginados.
+- **Armazenamento Flexível**: Estrutura preparada para futuros drivers (S3, MinIO, etc.).
 
 ## 🚀 Iniciar o Servidor
 
-```bash
-go run main.go
+1.  **Configure o `.env`**:
+    Copie o `.env.example` para `.env` e ajuste as variáveis, se necessário.
+    ```env
+    # Ambiente: "local" ou "production"
+    ENV=local
+
+    # Porta do servidor
+    PORT=8002
+
+    # Chave secreta para JWT (troque por um valor seguro em produção)
+    JWT_SECRET=your-super-secret-jwt-key
+
+    # Caminho para o banco de dados SQLite
+    DATABASE_URL=forge.db
+    ```
+
+2.  **Execute o servidor**:
+    ```bash
+    go run main.go
+    ```
+
+## 🔌 Endpoints da API
+
+Todos os endpoints da API estão sob o prefixo `/api` e exigem autenticação.
+
+**Autenticação**:
+Forneça o Token JWT ou a `FORGE_API_KEY` no header `Authorization`.
+
 ```
-
-## 📁 Estrutura de Diretórios
-
-```
-uploads/
-├── projeto-a/
-│   ├── imagem1-20240101-120000.jpg
-│   └── imagem2-20240101-120100.jpg
-├── projeto-b/
-│   └── documento-20240101-120200.pdf
-└── default/
-    └── arquivo-20240101-120300.txt
-```
-
-## 🔌 Endpoints Disponíveis
-
-### 1. Upload de Arquivo
-**POST** `/upload`
-
-Faz upload de um arquivo para um projeto específico.
-
-**Parâmetros:**
-- `file` (form-data, obrigatório): O arquivo a ser enviado
-- `project` (form-data, opcional): Nome do projeto (padrão: "default")
-
-**Exemplo com cURL:**
-```bash
-curl -X POST http://localhost:8002/upload \
-  -F "file=@/caminho/para/imagem.jpg" \
-  -F "project=meu-app"
-```
-
-**Exemplo com JavaScript:**
-```javascript
-const formData = new FormData();
-formData.append('file', fileInput.files[0]);
-formData.append('project', 'meu-app');
-
-fetch('http://localhost:8002/upload', {
-  method: 'POST',
-  body: formData
-})
-.then(res => res.json())
-.then(data => console.log(data));
-```
-
-**Resposta:**
-```json
-{
-  "message": "Arquivo enviado com sucesso",
-  "url": "http://localhost:8002/files/meu-app/imagem-20240101-120000.jpg",
-  "project": "meu-app",
-  "file": "imagem-20240101-120000.jpg"
-}
+Authorization: Bearer <SEU_TOKEN_JWT_OU_API_KEY>
 ```
 
 ---
 
-### 2. Listar Todos os Projetos
-**GET** `/projects`
+### 👤 Autenticação
 
-Lista todos os projetos disponíveis com estatísticas.
+#### 1. Criar Conta
+**POST** `/register`
 
-**Exemplo:**
-```bash
-curl http://localhost:8002/projects
-```
+Cria um novo usuário e retorna a `FORGE_API_KEY` inicial.
 
-**Resposta:**
+**Body (JSON)**:
 ```json
 {
-  "projects": [
-    {
-      "name": "meu-app",
-      "file_count": 15,
-      "total_size": 2048576
-    },
-    {
-      "name": "outro-projeto",
-      "file_count": 8,
-      "total_size": 1024000
-    }
-  ],
-  "total": 2
+  "email": "user@example.com",
+  "password": "your-strong-password"
 }
 ```
 
----
+#### 2. Fazer Login
+**POST** `/login`
 
-### 3. Listar Arquivos de um Projeto
-**GET** `/list?project={nome}`
+Autentica um usuário e retorna um Token JWT válido por 24 horas.
 
-Lista todos os arquivos de um projeto específico.
-
-**Exemplo:**
-```bash
-curl http://localhost:8002/list?project=meu-app
-```
-
-**Resposta:**
+**Body (JSON)**:
 ```json
 {
-  "project": "meu-app",
-  "files": [
-    {
-      "name": "imagem-20240101-120000.jpg",
-      "url": "http://localhost:8002/files/meu-app/imagem-20240101-120000.jpg",
-      "size": 204800,
-      "uploaded_at": "2024-01-01 12:00:00"
-    }
-  ],
-  "total": 1
+  "email": "user@example.com",
+  "password": "your-strong-password"
 }
 ```
 
----
+#### 3. Rotacionar a Chave de API
+**POST** `/api/user/rotate-api-key`
 
-### 4. Acessar/Baixar Arquivo
-**GET** `/files/{projeto}/{arquivo}`
-
-Acessa ou baixa um arquivo específico.
-
-**Exemplo:**
-```bash
-curl http://localhost:8002/files/meu-app/imagem-20240101-120000.jpg -o imagem.jpg
-```
+Gera uma nova `FORGE_API_KEY` para o usuário autenticado.
 
 ---
 
-### 5. Deletar Arquivo
-**DELETE** `/delete?project={nome}&file={arquivo}`
+### 📦 Arquivos e Projetos
 
-Remove um arquivo específico de um projeto.
+#### 1. Upload de Arquivo
+**POST** `/api/upload`
 
-**Exemplo:**
+Faz upload de um arquivo para um projeto. Se o projeto não existir, ele é criado.
+
+**Parâmetros (form-data)**:
+- `file` (obrigatório): O arquivo a ser enviado.
+- `project` (opcional): Nome do projeto (padrão: "default").
+
+**Exemplo com cURL**:
 ```bash
-curl -X DELETE "http://localhost:8002/delete?project=meu-app&file=imagem-20240101-120000.jpg"
+curl -X POST http://localhost:8002/api/upload \
+  -H "Authorization: Bearer <SUA_API_KEY>" \
+  -F "file=@/path/to/image.png" \
+  -F "project=my-app"
 ```
 
-**Resposta:**
-```json
-{
-  "message": "Arquivo deletado com sucesso",
-  "project": "meu-app",
-  "file": "imagem-20240101-120000.jpg"
-}
+#### 2. Listar Projetos
+**GET** `/api/projects`
+
+Lista os projetos do usuário com estatísticas.
+
+**Query Params (opcional)**:
+- `page`: Número da página.
+- `per_page`: Itens por página.
+
+#### 3. Listar Arquivos de um Projeto
+**GET** `/api/list?project={nome}`
+
+Lista os arquivos de um projeto específico.
+
+**Query Params (opcional)**:
+- `page`: Número da página.
+- `per_page`: Itens por página.
+
+#### 4. Deletar Arquivo
+**DELETE** `/api/delete?project={nome}&file={arquivo}`
+
+Remove um arquivo de um projeto.
+
+---
+
+### 📂 Acesso a Arquivos
+
+#### Acessar/Baixar Arquivo
+**GET** `/files/{user_id}/{projeto}/{arquivo}`
+
+Acessa um arquivo enviado. A URL é retornada na resposta do upload.
+
+**Exemplo**:
+```bash
+curl http://localhost:8002/files/user_1/my-app/image-20251209-174000.png -o image.png
 ```
-
-## 🎯 Casos de Uso
-
-### Exemplo 1: Upload de Imagens de um App Mobile
-```javascript
-// No seu app
-const uploadImage = async (imageFile, appName) => {
-  const formData = new FormData();
-  formData.append('file', imageFile);
-  formData.append('project', appName);
-  
-  const response = await fetch('https://uploader.nativespeak.app/upload', {
-    method: 'POST',
-    body: formData
-  });
-  
-  const data = await response.json();
-  return data.url; // Use esta URL no seu app
-};
-```
-
-### Exemplo 2: Filtrar Imagens por Projeto
-```javascript
-// Listar apenas imagens do projeto "app-vendas"
-const response = await fetch('http://localhost:8002/list?project=app-vendas');
-const data = await response.json();
-
-data.files.forEach(file => {
-  console.log(`${file.name} - ${file.size} bytes`);
-});
-```
-
-### Exemplo 3: Galeria de Imagens por Projeto
-```javascript
-// Criar galeria HTML
-const createGallery = async (projectName) => {
-  const response = await fetch(`http://localhost:8002/list?project=${projectName}`);
-  const data = await response.json();
-  
-  const gallery = document.getElementById('gallery');
-  data.files.forEach(file => {
-    const img = document.createElement('img');
-    img.src = file.url;
-    img.alt = file.name;
-    gallery.appendChild(img);
-  });
-};
-```
-
-## ⚙️ Configuração (.env)
-
-```env
-ENV=local
-DOMAIN_LOCAL=http://localhost:8002
-DOMAIN_PROD=https://uploader.nativespeak.app
-PORT=8002
-```
-
-## 🔒 Segurança
-
-- Nomes de projetos são sanitizados automaticamente
-- Caracteres perigosos (`..`, `/`, `\`) são removidos
-- Cada projeto tem seu próprio diretório isolado
-
-## 📝 Notas
-
-- Arquivos recebem timestamp automático para evitar conflitos
-- Se nenhum projeto for especificado, usa "default"
-- Projetos são criados automaticamente no primeiro upload
-- Nomes de projeto são convertidos para lowercase
 
 ## 🛠️ Tecnologias
 
-- Go 1.20+
-- Pacote `godotenv` para variáveis de ambiente
+- Go 1.21+
+- GORM (com driver SQLite CGO-free)
+- JWT para autenticação
+- `godotenv` para variáveis de ambiente

@@ -1,0 +1,72 @@
+Quero evoluir o backend do meu serviço de upload desenvolvido em Go, adicionando um sistema de segurança baseado em níveis de acesso. O backend atual permite fazer upload, listar, acessar e deletar arquivos organizados por projetos, mas ainda não possui autenticação, controle de permissões ou políticas de uso.
+
+A nova versão deve incluir:
+
+1. Criação e autenticação de usuários
+
+Sistema de criação de conta com email e senha.
+
+Login retornando um JWT.
+
+Cada usuário deve ter seu próprio namespace lógico de projetos.
+
+Usuários não podem acessar projetos nem arquivos de outros usuários.
+
+2. Fornecimento de uma FORGE_API_KEY por usuário
+
+Quando o usuário cria uma conta, o sistema deve gerar uma FORGE_API_KEY única.
+
+Essa chave deve ser usada pelos desenvolvedores para autenticação em requisições à API.
+
+A chave deve poder ser rotacionada (regenerada) sem quebrar o sistema.
+
+3. Níveis de segurança e permissões
+
+Implementar políticas de segurança reais, com:
+
+Limite de tamanho de arquivos por upload.
+
+Limite de número de uploads/dia (rate-limit).
+
+Validação de MIME-Type e extensão permitida.
+
+Sanitização obrigatória de nomes de projetos e arquivos.
+
+Rejeição automática de arquivos suspeitos.
+
+Paginação nos endpoints de listagem.
+
+Logs de auditoria: uploads, deleções e falhas.
+
+4. Revisão e melhoria estrutural
+
+Corrigir premissas frágeis do design atual, incluindo:
+
+Evitar exposição de endpoints sensíveis sem autenticação.
+
+Impedir criação infinita de projetos (limites ou regras).
+
+Suporte futuro a driver de armazenamento (Local/S3/MinIO).
+
+Melhor tratamento de concorrência e geração de nomes únicos.
+
+5. Endpoints devem usar autenticação obrigatória
+
+Todos os endpoints (/upload, /list, /projects, /delete) devem:
+
+Exigir JWT ou FORGE_API_KEY.
+
+Responder com erros claros quando faltar autenticação.
+
+6. Manter a simplicidade para o desenvolvedor
+
+Apesar da segurança aumentada, o uso deve continuar simples:
+
+curl -X POST https://uploader.../upload \
+  -H "Authorization: Bearer <FORGE_API_KEY>" \
+  -F "file=@imagem.png" \
+  -F "project=meu-app"
+
+🎯 Objetivo final
+
+Transformar o serviço atual de upload em uma API profissional, segura e adequada para uso público por desenvolvedores externos, sem perder a simplicidade do fluxo principal.
