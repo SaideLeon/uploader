@@ -41,7 +41,7 @@
 			
 				// API Endpoints (protegidos)
 				api := http.NewServeMux()
-				api.Handle("/upload", middleware.RateLimitMiddleware(http.HandlerFunc(handlers.UploadHandler(DB))))
+				api.HandleFunc("/upload", handlers.UploadHandler(DB))
 				api.HandleFunc("/projects", handlers.ProjectsHandler(DB))
 				api.HandleFunc("/list", handlers.ListHandler(DB))
 				api.HandleFunc("/delete", handlers.DeleteHandler(DB))

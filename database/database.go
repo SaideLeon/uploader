@@ -29,3 +29,27 @@ func Connect() (*gorm.DB, error) {
 
 	return db, nil
 }
+
+// ConnectTest abre uma conexão com um banco de dados SQLite em memória para testes
+func ConnectTest() (*gorm.DB, error) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.AutoMigrate(&models.User{}, &models.Project{}, &models.File{})
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+// CloseTest fecha a conexão com o banco de dados de teste
+func CloseTest(db *gorm.DB) {
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatal("Falha ao obter o objeto sql.DB:", err)
+	}
+	sqlDB.Close()
+}

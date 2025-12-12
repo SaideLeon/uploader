@@ -44,7 +44,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	u.ForgeAPIKey = uuid.New().String()
 
 	// Hashear a senha
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), 10)
 	if err != nil {
 		return err
 	}

@@ -63,7 +63,7 @@ func sanitizeProjectName(project string) string {
 	project = strings.ToLower(project)
 	project = strings.ReplaceAll(project, "..", "")
 	project = strings.ReplaceAll(project, "/", "-")
-	project = strings.ReplaceAll(project, \", "-")
+	project = strings.ReplaceAll(project, "\\", "-")
 	if project == "" {
 		project = "default"
 	}
