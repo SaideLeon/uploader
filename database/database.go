@@ -3,7 +3,7 @@ package database
 import (
 	"log"
 
-	"github.com/glebarez/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
@@ -13,7 +13,7 @@ import (
 
 // Connect abre a conexão com o banco de dados e executa as migrações
 func Connect() (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(config.AppConfig.DatabaseURL), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(config.AppConfig.DatabaseURL), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
@@ -30,9 +30,11 @@ func Connect() (*gorm.DB, error) {
 	return db, nil
 }
 
-// ConnectTest abre uma conexão com um banco de dados SQLite em memória para testes
+// ConnectTest abre uma conexão com um banco de dados de teste
 func ConnectTest() (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	// ATENÇÃO: Isso usará a mesma URL de banco de dados da aplicação.
+	// Para testes de verdade, considere usar um banco de dados de teste separado.
+	db, err := gorm.Open(postgres.Open(config.AppConfig.DatabaseURL), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
