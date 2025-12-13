@@ -12,6 +12,7 @@
 			"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/database"
 			"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/handlers"
 			"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/middleware"
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/util"
 		)
 		
 		var (
@@ -59,9 +60,7 @@
 				loggedMux := middleware.LoggingMiddleware(mux)
 			
 				fmt.Printf("🚀 Servidor rodando na porta %s\n", config.AppConfig.Port)
-				fmt.Printf("🔑 JWT Secret: %s\n", config.AppConfig.JWTSecret)
-				fmt.Printf("🗄️ Database: %s\n", config.AppConfig.DatabaseURL)
-				fmt.Printf("✅ Endpoints de API protegidos em /api/\n")
-			
+					fmt.Printf("🗄️ Database: %s\n", util.MaskDBURL(config.AppConfig.DatabaseURL))
+					fmt.Printf("✅ Endpoints de API protegidos em /api/\n")			
 				log.Fatal(http.ListenAndServe(":"+config.AppConfig.Port, loggedMux))		}
 		
