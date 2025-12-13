@@ -1,0 +1,79 @@
+19:12:52.577546
+Starting deployment of SaideLeon/uploader:main to Oracle Cloud.
+2025-Dec-12 19:12:53.156075
+Preparing container with helper image: ghcr.io/coollabsio/coolify-helper:1.0.12
+2025-Dec-12 19:12:56.903245
+Image not found (j4ggogkc0occ44w80c0wgk40:b8b5d0b60584b48b3625e22d4063fe9dc6b1bd34). Building new image.
+2025-Dec-12 19:12:57.337276
+----------------------------------------
+2025-Dec-12 19:12:57.345303
+Importing SaideLeon/uploader:main (commit sha b8b5d0b60584b48b3625e22d4063fe9dc6b1bd34) to /artifacts/ikog4kc8swcc0ok8ow0ogcow.
+2025-Dec-12 19:13:05.288163
+Generating nixpacks configuration with: nixpacks plan -f json --env NIXPACKS_NODE_VERSION=22 --env SOURCE_COMMIT=b8b5d0b60584b48b3625e22d4063fe9dc6b1bd34 --env COOLIFY_URL=https://uploader.nativespeak.app --env COOLIFY_FQDN=uploader.nativespeak.app --env COOLIFY_BRANCH=main --env COOLIFY_RESOURCE_UUID=j4ggogkc0occ44w80c0wgk40 --env COOLIFY_CONTAINER_NAME=j4ggogkc0occ44w80c0wgk40-191249613901 /artifacts/ikog4kc8swcc0ok8ow0ogcow
+2025-Dec-12 19:13:06.009657
+Found application type: go.
+2025-Dec-12 19:13:06.016287
+If you need further customization, please check the documentation of Nixpacks: https://nixpacks.com/docs/providers/go
+2025-Dec-12 19:13:07.674288
+----------------------------------------
+2025-Dec-12 19:13:07.680738
+Building docker image started.
+2025-Dec-12 19:13:07.687333
+To check the current progress, click on Show Debug Logs.
+2025-Dec-12 19:13:10.869255
+Oops something is not okay, are you okay? 😢
+2025-Dec-12 19:13:10.875968
+#0 building with "default" instance using docker driver
+2025-Dec-12 19:13:10.875968
+2025-Dec-12 19:13:10.875968
+#1 [internal] load build definition from Dockerfile
+2025-Dec-12 19:13:10.875968
+#1 transferring dockerfile: 1.53kB done
+2025-Dec-12 19:13:10.875968
+#1 DONE 0.1s
+2025-Dec-12 19:13:10.875968
+2025-Dec-12 19:13:10.875968
+#2 [internal] load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+2025-Dec-12 19:13:10.875968
+#2 ...
+2025-Dec-12 19:13:10.875968
+2025-Dec-12 19:13:10.875968
+#3 [auth] railwayapp/nixpacks:pull token for ghcr.io
+2025-Dec-12 19:13:10.875968
+#3 DONE 0.0s
+2025-Dec-12 19:13:10.875968
+2025-Dec-12 19:13:10.875968
+#2 [internal] load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+2025-Dec-12 19:13:10.875968
+#2 ERROR: failed to authorize: failed to fetch oauth token: unexpected status from GET request to https://ghcr.io/token?scope=repository%3Arailwayapp%2Fnixpacks%3Apull&service=ghcr.io: 403 Forbidden
+2025-Dec-12 19:13:10.875968
+2025-Dec-12 19:13:10.875968
+#4 [internal] load metadata for docker.io/library/ubuntu:noble
+2025-Dec-12 19:13:10.875968
+#4 CANCELED
+2025-Dec-12 19:13:10.875968
+------
+2025-Dec-12 19:13:10.875968
+> [internal] load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067:
+2025-Dec-12 19:13:10.875968
+------
+2025-Dec-12 19:13:10.875968
+Dockerfile:1
+2025-Dec-12 19:13:10.875968
+--------------------
+2025-Dec-12 19:13:10.875968
+1 | >>> FROM ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+2025-Dec-12 19:13:10.875968
+2 |
+2025-Dec-12 19:13:10.875968
+3 |     ENTRYPOINT ["/bin/bash", "-l", "-c"]
+2025-Dec-12 19:13:10.875968
+--------------------
+2025-Dec-12 19:13:10.875968
+ERROR: failed to build: failed to solve: ghcr.io/railwayapp/nixpacks:ubuntu-1745885067: failed to resolve source metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067: failed to authorize: failed to fetch oauth token: unexpected status from GET request to https://ghcr.io/token?scope=repository%3Arailwayapp%2Fnixpacks%3Apull&service=ghcr.io: 403 Forbidden
+2025-Dec-12 19:13:10.875968
+exit status 1
+2025-Dec-12 19:13:10.883205
+Deployment failed. Removing the new version of your application.
+2025-Dec-12 19:13:12.040543
+Gracefully shutting down build container: ikog4kc8swcc0ok8ow0ogcow
