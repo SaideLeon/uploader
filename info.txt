@@ -1,0 +1,306 @@
+Responses
+Response content type
+
+application/json
+Curl
+
+curl -X 'POST' \
+  'https://uploader.nativespeak.app/api/upload' \
+  -H 'accept: application/json' \
+  -H 'Authorization: 1f98f668-179a-4a4e-9b54-3a8528a51784' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'project=PhotoMind' \
+  -F 'file=@guerra.png;type=image/png'
+Request URL
+https://uploader.nativespeak.app/api/upload
+Server response
+Code	Details
+Undocumented
+Failed to fetch.
+Possible Reasons:
+
+CORS
+Network Failure
+URL scheme must be "http" or "https" for CORS request.
+Responses
+Code	Description
+201	
+File uploaded successfully
+
+Example Value
+Model
+{
+  "file": "string",
+  "message": "string",
+  "project": "string",
+  "url": "string"
+}
+400	
+Bad Request: Error reading file or file is too large
+
+Example Value
+Model
+"string"
+413	
+File is too large. Max size is 10MB.
+
+Example Value
+Model
+"string"
+415	
+Invalid file type. Allowed types are: jpeg, png, pdf.
+
+Example Value
+Model
+"string"
+500	
+Internal Server Error
+
+Example Value
+Model
+"string"
+
+POST
+/api/user/rotate-api-key
+Rotate user's API key
+
+auth
+
+
+POST
+/login
+Log in a user
+Authenticates a user and returns a JWT token.
+
+Parameters
+Cancel
+Name	Description
+auth_request *
+object
+(body)
+User login credentials
+
+Edit Value
+Model
+{
+  "email": "saideomarsaide@gmail.com",
+  "password": "Damasco12"
+}
+Cancel
+Parameter content type
+
+application/json
+Execute
+Clear
+Responses
+Response content type
+
+application/json
+Curl
+
+curl -X 'POST' \
+  'https://uploader.nativespeak.app/login' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "saideomarsaide@gmail.com",
+  "password": "Damasco12"
+}'
+Request URL
+https://uploader.nativespeak.app/login
+Server response
+Code	Details
+200	
+Response body
+Download
+{
+  "message": "Logged in successfully",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJlbWFpbCI6InNhaWRlb21hcnNhaWRlQGdtYWlsLmNvbSIsImlzcyI6ImZvcmdlLXVwbG9hZGVyIiwiZXhwIjoxNzY1Nzg4MzMzLCJpYXQiOjE3NjU3MDE5MzN9.OMn7W6_qySCZ3pO8OWRD3A5bRgh2JGba55PlYVYRB84"
+}
+Response headers
+ alt-svc: h3=":443"; ma=2592000 
+ content-length: 269 
+ content-type: application/json 
+ date: Sun,14 Dec 2025 08:45:33 GMT 
+ vary: Accept-Encoding 
+Responses
+Code	Description
+200	
+Logged in successfully
+
+Example Value
+Model
+{
+  "forge_api_key": "string",
+  "message": "string",
+  "token": "string",
+  "user": {
+    "createdAt": "string",
+    "email": "string",
+    "forgeAPIKey": "string",
+    "id": 0,
+    "password": "string",
+    "projects": [
+      {
+        "createdAt": "string",
+        "files": [
+          {
+            "id": 0,
+            "mimeType": "string",
+            "name": "string",
+            "path": "string",
+            "projectID": 0,
+            "size": 0,
+            "uploadedAt": "string"
+          }
+        ],
+        "id": 0,
+        "name": "string",
+        "userID": 0
+      }
+    ]
+  }
+}
+400	
+Invalid request body
+
+Example Value
+Model
+"string"
+401	
+Invalid credentials
+
+Example Value
+Model
+"string"
+500	
+Could not generate token
+
+Example Value
+Model
+"string"
+
+POST
+/register
+Register a new user
+Creates a new user account and returns the user info along with an API key.
+
+Parameters
+Cancel
+Name	Description
+auth_request *
+object
+(body)
+User registration details
+
+Edit Value
+Model
+{
+  "email": "saideomarsaide@gmail.com",
+  "password": "Damasco12"
+}
+Cancel
+Parameter content type
+
+application/json
+Execute
+Clear
+Responses
+Response content type
+
+application/json
+Curl
+
+curl -X 'POST' \
+  'https://uploader.nativespeak.app/register' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "saideomarsaide@gmail.com",
+  "password": "Damasco12"
+}'
+Request URL
+https://uploader.nativespeak.app/register
+Server response
+Code	Details
+201	
+Response body
+Download
+{
+  "message": "User created successfully",
+  "user": {
+    "ID": 2,
+    "Email": "saideomarsaide@gmail.com",
+    "Password": "",
+    "ForgeAPIKey": "1f98f668-179a-4a4e-9b54-3a8528a51784",
+    "CreatedAt": "2025-12-14T08:39:27.421934302Z",
+    "Projects": null
+  },
+  "forge_api_key": "1f98f668-179a-4a4e-9b54-3a8528a51784"
+}
+Response headers
+ alt-svc: h3=":443"; ma=2592000 
+ content-length: 274 
+ content-type: application/json 
+ date: Sun,14 Dec 2025 08:39:27 GMT 
+ vary: Accept-Encoding 
+Responses
+Code	Description
+201	
+User created successfully
+
+Example Value
+Model
+{
+  "forge_api_key": "string",
+  "message": "string",
+  "token": "string",
+  "user": {
+    "createdAt": "string",
+    "email": "string",
+    "forgeAPIKey": "string",
+    "id": 0,
+    "password": "string",
+    "projects": [
+      {
+        "createdAt": "string",
+        "files": [
+          {
+            "id": 0,
+            "mimeType": "string",
+            "name": "string",
+            "path": "string",
+            "projectID": 0,
+            "size": 0,
+            "uploadedAt": "string"
+          }
+        ],
+        "id": 0,
+        "name": "string",
+        "userID": 0
+      }
+    ]
+  }
+}
+400	
+Invalid request body or missing fields
+
+Example Value
+Model
+"string"
+500	
+Could not create user
+
+Example Value
+Model
+"string"
+
+Models
+handlers.AuthRequest
+handlers.AuthResponse
+handlers.FileInfo
+handlers.ListResponse
+handlers.ProjectInfo
+handlers.ProjectsResponse
+handlers.UploadResponse
+models.File

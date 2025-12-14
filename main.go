@@ -87,9 +87,12 @@ package main
 			
 				// Aplica o middleware de logging a todas as rotas
 				loggedMux := middleware.LoggingMiddleware(mux)
+
+				// Aplica o middleware de CORS
+				corsMux := middleware.CORSMiddleware(loggedMux)
 			
 				fmt.Printf("🚀 Servidor rodando na porta %s\n", config.AppConfig.Port)
 					fmt.Printf("🗄️ Database: %s\n", util.MaskDBURL(config.AppConfig.DatabaseURL))
 					fmt.Printf("✅ Endpoints de API protegidos em /api/\n")			
-				log.Fatal(http.ListenAndServe(":"+config.AppConfig.Port, loggedMux))		}
+				log.Fatal(http.ListenAndServe(":"+config.AppConfig.Port, corsMux))		}
 		
