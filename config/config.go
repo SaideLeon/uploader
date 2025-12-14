@@ -35,17 +35,26 @@ func LoadConfig() {
 
 // getDomain obtém o domínio baseado no ambiente
 func getDomain() string {
+	// Prioridade 1: Variável de ambiente DOMAIN (geral)
+	if value, ok := os.LookupEnv("DOMAIN"); ok && value != "" {
+		return value
+	}
+
+	// Prioridade 2: Variáveis de ambiente específicas do ambiente (production/local)
 	env := os.Getenv("ENV")
-	domain := os.Getenv("DOMAIN_LOCAL")
 	if env == "production" {
-		domain = os.Getenv("DOMAIN_PROD")
+		if value, ok := os.LookupEnv("DOMAIN_PROD"); ok && value != "" {
+			return value
+		}
+	} else { // Assume "local" ou qualquer outro valor
+		if value, ok := os.LookupEnv("DOMAIN_LOCAL"); ok && value != "" {
+			return value
+		}
 	}
-	// Fallback if not set
-	if domain == "" {
-		port := getEnv("PORT", "8002")
-		domain = "http://localhost:" + port
-	}
-	return domain
+	
+	// Fallback final: localhost
+	port := getEnv("PORT", "8002")
+	return "http://localhost:" + port
 }
 
 // getEnv retrieves an environment variable or returns a default value

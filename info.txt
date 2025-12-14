@@ -1,133 +1,84 @@
-Perfeito! 🎉 Agora está funcionando corretamente! 
+Responses
+Response content type
 
-## ✅ O que você está vendo
+application/json
+Curl
 
-Você tem **3 projetos** nesta conta:
-
-### 📊 Detalhamento
-
-| Projeto | Arquivos | Tamanho Total | Status |
-|---------|----------|---------------|--------|
-| **photo** | 0 | 0 bytes | Vazio (criado mas sem uploads) |
-| **photod** | 0 | 0 bytes | Vazio (criado mas sem uploads) |
-| **docph** | 2 | ~6 MB | ✅ Ativo com arquivos |
-
-### 🔍 Por que `photo` e `photod` estão vazios?
-
-Esses projetos foram criados automaticamente quando você tentou fazer upload pela primeira vez, mas os uploads podem ter:
-- Falhado (erro de permissão que resolvemos)
-- Sido deletados depois
-- Nunca completaram
-
-### 🧹 Limpar projetos vazios (opcional)
-
-Se quiser remover projetos sem arquivos, você pode adicionar um endpoint. Vou criar para você:## 📋 Como adicionar o endpoint de deletar projeto
-
-### 1. Adicione o handler no arquivo `handlers/api_handlers.go`
-
-Cole a função `DeleteProjectHandler` no final do arquivo.
-
-### 2. Registre a rota no `main.go`
-
-Adicione esta linha onde estão os outros endpoints da API:
-
-```go
-// Em main.go, na seção de API Endpoints:
-api := http.NewServeMux()
-api.HandleFunc("/upload", handlers.UploadHandler(DB))
-api.HandleFunc("/projects", handlers.ProjectsHandler(DB))
-api.HandleFunc("/list", handlers.ListHandler(DB))
-api.HandleFunc("/delete", handlers.DeleteHandler(DB))
-api.HandleFunc("/project/delete", handlers.DeleteProjectHandler(DB)) // ← NOVA LINHA
-api.HandleFunc("/user/rotate-api-key", handlers.RotateAPIKeyHandler(DB))
-```
-
-### 3. Rebuild e teste
-
-```bash
-# Rebuild
-docker build -t uploader:latest .
-docker-compose up -d
-
-# Deletar projeto vazio
-curl -X 'DELETE' \
-  'https://uploader.nativespeak.app/api/project/delete?project=photo' \
-  -H 'Authorization: 0c6f4fd0-07a2-4045-bba5-83334ac95ab2'
-```
-
-## 🎯 Ver arquivos do projeto docph
-
-```bash
 curl -X 'GET' \
   'https://uploader.nativespeak.app/api/list?project=docph' \
+  -H 'accept: application/json' \
   -H 'Authorization: 0c6f4fd0-07a2-4045-bba5-83334ac95ab2'
-```
-
-Isso mostrará os 2 arquivos (~6MB) que estão no projeto **docph**.
-
----
-
-Sua API está funcionando perfeitamente! 🚀 Os arrays vazios agora aparecem como `[]` e você tem informações completas de paginação com `total_pages`.
-
-
-
-// Adicione este handler em handlers/api_handlers.go
-
-// DeleteProjectHandler godoc
-// @Summary Delete an empty project
-// @Description Deletes a project that has no files. Projects with files cannot be deleted.
-// @Tags api
-// @Produce  json
-// @Param   project  query  string  true  "Project name"
-// @Security BearerAuth
-// @Security APIKeyAuth
-// @Success 200 {object} map[string]string "message: Project deleted successfully"
-// @Failure 400 {string} string "Project name is required or Project has files and cannot be deleted"
-// @Failure 404 {string} string "Project not found"
-// @Failure 500 {string} string "Could not delete project"
-// @Router /api/project/delete [delete]
-func DeleteProjectHandler(db *gorm.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
-		projectName := r.URL.Query().Get("project")
-
-		if projectName == "" {
-			http.Error(w, "Project name is required", http.StatusBadRequest)
-			return
-		}
-
-		var project models.Project
-		if err := db.First(&project, "name = ? AND user_id = ?", projectName, user.ID).Error; err != nil {
-			http.Error(w, "Project not found", http.StatusNotFound)
-			return
-		}
-
-		// Verificar se o projeto tem arquivos
-		var fileCount int64
-		db.Model(&models.File{}).Where("project_id = ?", project.ID).Count(&fileCount)
-		
-		if fileCount > 0 {
-			http.Error(w, "Project has files and cannot be deleted. Delete all files first.", http.StatusBadRequest)
-			return
-		}
-
-		// Deletar o projeto
-		if err := db.Delete(&project).Error; err != nil {
-			http.Error(w, "Could not delete project: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		// Tentar remover o diretório vazio
-		projectDir := filepath.Join("./uploads", fmt.Sprintf("user_%d", user.ID), projectName)
-		os.Remove(projectDir) // Ignora erro se não existir
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Project deleted successfully",
-			"project": projectName,
-		})
-	}
+Request URL
+https://uploader.nativespeak.app/api/list?project=docph
+Server response
+Code	Details
+200	
+Response body
+Download
+{
+  "project": "docph",
+  "files": [
+    {
+      "name": "guerra-20251214-100932.png",
+      "url": "http://localhost:8002/files/user_2/docph/guerra-20251214-100932.png",
+      "size": 7426,
+      "uploaded_at": "2025-12-14T10:09:32.588992Z"
+    },
+    {
+      "name": "Gemini_Generated_Image_yltq6wyltq6wyltq-20251214-103520.png",
+      "url": "http://localhost:8002/files/user_2/docph/Gemini_Generated_Image_yltq6wyltq6wyltq-20251214-103520.png",
+      "size": 6036545,
+      "uploaded_at": "2025-12-14T10:35:20.464424Z"
+    }
+  ],
+  "total": 2,
+  "page": 1,
+  "per_page": 10,
+  "total_pages": 1
 }
+Response headers
+ access-control-allow-headers: Accept,Content-Type,Content-Length,Accept-Encoding,X-CSRF-Token,Authorization 
+ access-control-allow-methods: POST,GET,OPTIONS,PUT,DELETE 
+ access-control-allow-origin: * 
+ alt-svc: h3=":443"; ma=2592000 
+ content-length: 488 
+ content-type: application/json 
+ date: Sun,14 Dec 2025 10:44:14 GMT 
+ vary: Accept-Encoding 
+Responses
+Code	Description
+200	
+OK
 
-// Adicione esta linha em main.go dentro da seção de API endpoints:
-// api.HandleFunc("/project/delete", handlers.DeleteProjectHandler(DB))
+Example Value
+Model
+{
+  "files": [
+    {
+      "name": "string",
+      "size": 0,
+      "uploaded_at": "string",
+      "url": "string"
+    }
+  ],
+  "page": 0,
+  "per_page": 0,
+  "project": "string",
+  "total": 0
+}
+400	
+Project name is required
+
+Example Value
+Model
+"string"
+404	
+Project not found
+
+Example Value
+Model
+"string"
+
+Sanitização de nomes de arquivos http://localhost:8002/files/user_2/docph/Gemini_Generated_Image_yltq6wyltq6wyltq-20251214-103520.png PARA
+https://uploader.nativespeak.app/files/user_2/docph/Gemini_Generated_Image_yltq6wyltq6wyltq-20251214-103520.png QUANDO RETORNAR
+
