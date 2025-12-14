@@ -28,9 +28,8 @@ WORKDIR /app
 # Copy the pre-built binary from the builder stage
 COPY --from=builder /app/uploader .
 
-# Create the uploads directory and the database file, and set ownership
-# This ensures the application can write to them
-RUN mkdir -p /app/uploads
+# Create the uploads directory and set ownership BEFORE switching to appuser
+RUN mkdir -p /app/uploads && chown -R appuser:appgroup /app/uploads
 
 # Switch to the non-root user
 USER appuser
@@ -39,6 +38,4 @@ USER appuser
 EXPOSE 8002
 
 # Command to run the executable
-# The application will use the default port 8002 if the PORT env var is not set.
 CMD ["./uploader"]
-
