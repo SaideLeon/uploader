@@ -126,7 +126,7 @@ definitions:
           $ref: '#/definitions/models.Project'
         type: array
     type: object
-host: localhost:8002
+host: uploader.nativespeak.app
 info:
   contact:
     email: support@swagger.io
@@ -380,7 +380,7 @@ paths:
       tags:
       - auth
 schemes:
-- http
+- https
 securityDefinitions:
   APIKeyAuth:
     description: API key for external services.
