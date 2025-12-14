@@ -117,10 +117,15 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
+		// Não retornar a senha
+		user.Password = ""
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(AuthResponse{
-			Message: "Logged in successfully",
-			Token:   token,
+			Message:     "Logged in successfully",
+			Token:       token,
+			User:        &user,
+			ForgeAPIKey: user.ForgeAPIKey,
 		})
 	}
 }
