@@ -4,14 +4,15 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/config"
 	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/models"
 )
 
 // Claims defines the JWT claims
 type Claims struct {
-	UserID uint   `json:"user_id"`
-	Email  string `json:"email"`
+	UserID uuid.UUID `json:"user_id"`
+	Email  string    `json:"email"`
 	jwt.RegisteredClaims
 }
 

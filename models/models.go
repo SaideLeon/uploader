@@ -10,7 +10,7 @@ import (
 
 // User representa um usuário no sistema
 type User struct {
-	ID          uint      `gorm:"primaryKey"`
+	ID          uuid.UUID `gorm:"type:uuid;primary_key;"`
 	Email       string    `gorm:"uniqueIndex;not null"`
 	Password    string    `gorm:"not null"`
 	ForgeAPIKey string    `gorm:"uniqueIndex;not null"`
@@ -20,26 +20,27 @@ type User struct {
 
 // Project representa um projeto de um usuário
 type Project struct {
-	ID        uint      `gorm:"primaryKey"`
+	ID        uuid.UUID `gorm:"type:uuid;primary_key;"`
 	Name      string    `gorm:"uniqueIndex:idx_user_project;not null"`
-	UserID    uint      `gorm:"uniqueIndex:idx_user_project;not null"`
+	UserID    uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_project;not null"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	Files     []File    `gorm:"foreignKey:ProjectID"`
 }
 
 // File representa um arquivo enviado para um projeto
 type File struct {
-	ID          uint      `gorm:"primaryKey"`
+	ID          uuid.UUID `gorm:"type:uuid;primary_key;"`
 	Name        string    `gorm:"not null"`
 	Path        string    `gorm:"not null"`
 	Size        int64     `gorm:"not null"`
 	MimeType    string    `gorm:"not null"`
-	ProjectID   uint      `gorm:"not null"`
+	ProjectID   uuid.UUID `gorm:"type:uuid;not null"`
 	UploadedAt  time.Time `gorm:"autoCreateTime"`
 }
 
 // BeforeCreate é um hook do GORM para gerar a API key e hashear a senha antes de criar um usuário
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+	u.ID = uuid.New()
 	// Gerar API Key
 	u.ForgeAPIKey = uuid.New().String()
 
@@ -52,6 +53,19 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 
 	return nil
 }
+
+// BeforeCreate is a GORM hook to generate a UUID for the project ID before creating a record
+func (p *Project) BeforeCreate(tx *gorm.DB) (err error) {
+	p.ID = uuid.New()
+	return
+}
+
+// BeforeCreate is a GORM hook to generate a UUID for the file ID before creating a record
+func (f *File) BeforeCreate(tx *gorm.DB) (err error) {
+	f.ID = uuid.New()
+	return
+}
+
 
 // CheckPassword compara a senha fornecida com o hash armazenado
 func (u *User) CheckPassword(password string) bool {

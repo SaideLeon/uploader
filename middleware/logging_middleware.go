@@ -20,7 +20,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		logLine := ""
 		user, ok := r.Context().Value(UserContextKey).(*models.User)
 		if ok {
-			logLine = "user_id=" + string(user.ID)
+			logLine = "user_id=" + user.ID.String()
 		} else {
 			logLine = "user_id=anonymous"
 		}

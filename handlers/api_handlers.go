@@ -168,7 +168,7 @@ func UploadHandler(db *gorm.DB) http.HandlerFunc {
 		name := strings.TrimSuffix(header.Filename, ext)
 		safeName := fmt.Sprintf("%s-%s%s", name, timestamp, ext)
 
-		userDir := filepath.Join("./uploads", fmt.Sprintf("user_%d", user.ID))
+		userDir := filepath.Join("./uploads", fmt.Sprintf("user_%s", user.ID.String()))
 		projectDir := filepath.Join(userDir, project.Name)
 		if err := os.MkdirAll(projectDir, os.ModePerm); err != nil {
 			http.Error(w, "Could not create project directory: "+err.Error(), http.StatusInternalServerError)
@@ -201,7 +201,7 @@ func UploadHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		publicURL := fmt.Sprintf("%s/files/user_%d/%s/%s", config.AppConfig.Domain, user.ID, project.Name, safeName)
+		publicURL := fmt.Sprintf("%s/files/user_%s/%s/%s", config.AppConfig.Domain, user.ID.String(), project.Name, safeName)
 		resp := UploadResponse{
 			Message: "File uploaded successfully",
 			URL:     publicURL,
@@ -309,7 +309,7 @@ func ListHandler(db *gorm.DB) http.HandlerFunc {
 		for _, f := range files {
 			fileInfos = append(fileInfos, FileInfo{
 				Name:       f.Name,
-				URL:        fmt.Sprintf("%s/files/user_%d/%s/%s", domain, user.ID, projectName, f.Name),
+				URL:        fmt.Sprintf("%s/files/user_%s/%s/%s", domain, user.ID.String(), projectName, f.Name),
 				Size:       f.Size,
 				UploadedAt: f.UploadedAt,
 			})
@@ -467,7 +467,7 @@ func DeleteProjectHandler(db *gorm.DB) http.HandlerFunc {
 		}
 
 		// Tentar remover o diretório vazio
-		projectDir := filepath.Join("./uploads", fmt.Sprintf("user_%d", user.ID), projectName)
+		projectDir := filepath.Join("./uploads", fmt.Sprintf("user_%s", user.ID.String()), projectName)
 		os.Remove(projectDir) // Ignora erro se não existir
 
 		w.Header().Set("Content-Type", "application/json")

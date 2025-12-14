@@ -21,6 +21,9 @@ func Connect() (*gorm.DB, error) {
 	}
 
 	log.Println("Executando migrações do banco de dados...")
+	// Em desenvolvimento, podemos dropar as tabelas para garantir a atualização do esquema.
+	// CUIDADO: Isso apagará todos os dados. Não use em produção.
+	db.Migrator().DropTable(&models.User{}, &models.Project{}, &models.File{})
 	err = db.AutoMigrate(&models.User{}, &models.Project{}, &models.File{})
 	if err != nil {
 		log.Println("Erro ao executar migrações:", err)
