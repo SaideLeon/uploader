@@ -36,11 +36,12 @@ type FileInfo struct {
 }
 
 type ListResponse struct {
-	Project string     `json:"project"`
-	Files   []FileInfo `json:"files"`
-	Total   int64      `json:"total"`
-	Page    int        `json:"page"`
-	PerPage int        `json:"per_page"`
+	Project    string     `json:"project"`
+	Files      []FileInfo `json:"files"`
+	Total      int64      `json:"total"`
+	Page       int        `json:"page"`
+	PerPage    int        `json:"per_page"`
+	TotalPages int        `json:"total_pages"`
 }
 
 type ProjectInfo struct {
@@ -50,10 +51,11 @@ type ProjectInfo struct {
 }
 
 type ProjectsResponse struct {
-	Projects []ProjectInfo `json:"projects"`
-	Total    int           `json:"total"`
-	Page     int           `json:"page"`
-	PerPage  int           `json:"per_page"`
+	Projects   []ProjectInfo `json:"projects"`
+	Total      int           `json:"total"`
+	Page       int           `json:"page"`
+	PerPage    int           `json:"per_page"`
+	TotalPages int           `json:"total_pages"`
 }
 
 // --- Funções Utilitárias ---
@@ -76,10 +78,21 @@ func getPaginationParams(r *http.Request) (page, perPage int) {
 		page = 1
 	}
 	perPage, _ = strconv.Atoi(r.URL.Query().Get("per_page"))
-	if perPage <= 0 {
+	if perPage <= 0 || perPage > 100 {
 		perPage = 10
 	}
 	return page, perPage
+}
+
+func calculateTotalPages(total int64, perPage int) int {
+	if perPage == 0 {
+		return 0
+	}
+	pages := int(total) / perPage
+	if int(total)%perPage != 0 {
+		pages++
+	}
+	return pages
 }
 
 const (
@@ -222,7 +235,9 @@ func ProjectsHandler(db *gorm.DB) http.HandlerFunc {
 		var projects []models.Project
 		db.Where("user_id = ?", user.ID).Limit(perPage).Offset(offset).Find(&projects)
 
-		var projectInfos []ProjectInfo
+		// Inicializa como slice vazio em vez de nil
+		projectInfos := make([]ProjectInfo, 0)
+		
 		for _, p := range projects {
 			var fileCount int64
 			var totalSize int64
@@ -238,13 +253,16 @@ func ProjectsHandler(db *gorm.DB) http.HandlerFunc {
 
 		var totalProjects int64
 		db.Model(&models.Project{}).Where("user_id = ?", user.ID).Count(&totalProjects)
+		
+		totalPages := calculateTotalPages(totalProjects, perPage)
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(ProjectsResponse{
-			Projects: projectInfos,
-			Total:    int(totalProjects),
-			Page:     page,
-			PerPage:  perPage,
+			Projects:   projectInfos,
+			Total:      int(totalProjects),
+			Page:       page,
+			PerPage:    perPage,
+			TotalPages: totalPages,
 		})
 	}
 }
@@ -284,8 +302,10 @@ func ListHandler(db *gorm.DB) http.HandlerFunc {
 		var files []models.File
 		db.Where("project_id = ?", project.ID).Limit(perPage).Offset(offset).Find(&files)
 
-		var fileInfos []FileInfo
+		// Inicializa como slice vazio em vez de nil
+		fileInfos := make([]FileInfo, 0)
 		domain := config.AppConfig.Domain
+		
 		for _, f := range files {
 			fileInfos = append(fileInfos, FileInfo{
 				Name:       f.Name,
@@ -297,14 +317,17 @@ func ListHandler(db *gorm.DB) http.HandlerFunc {
 
 		var totalFiles int64
 		db.Model(&models.File{}).Where("project_id = ?", project.ID).Count(&totalFiles)
+		
+		totalPages := calculateTotalPages(totalFiles, perPage)
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(ListResponse{
-			Project: projectName,
-			Files:   fileInfos,
-			Total:   totalFiles,
-			Page:    page,
-			PerPage: perPage,
+			Project:    projectName,
+			Files:      fileInfos,
+			Total:      totalFiles,
+			Page:       page,
+			PerPage:    perPage,
+			TotalPages: totalPages,
 		})
 	}
 }
@@ -393,7 +416,7 @@ func RotateAPIKeyHandler(db *gorm.DB) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
-			"message":       "API key rotated successfully",
+			"message":     "API key rotated successfully",
 			"new_api_key": newAPIKey,
 		})
 	}

@@ -1,70 +1,158 @@
-Responses
-Response content type
-
-application/json
 Curl
 
-curl -X 'POST' \
-  'https://uploader.nativespeak.app/api/upload' \
+curl -X 'GET' \
+  'https://uploader.nativespeak.app/api/projects?page=10&per_page=10' \
   -H 'accept: application/json' \
-  -H 'Authorization: 1f98f668-179a-4a4e-9b54-3a8528a51784' \
-  -H 'Content-Type: multipart/form-data' \
-  -F 'project=Photo' \
-  -F 'file=@guerra.png;type=image/png'
+  -H 'Authorization: 0c6f4fd0-07a2-4045-bba5-83334ac95ab2'
 Request URL
-https://uploader.nativespeak.app/api/upload
+https://uploader.nativespeak.app/api/projects?page=10&per_page=10
 Server response
 Code	Details
-500	
-Error: response status is 500
-
+200	
 Response body
 Download
-Could not create project directory: mkdir uploads/user_2: permission denied
+{
+  "projects": null,
+  "total": 3,
+  "page": 10,
+  "per_page": 10
+}
 Response headers
  access-control-allow-headers: Accept,Content-Type,Content-Length,Accept-Encoding,X-CSRF-Token,Authorization 
  access-control-allow-methods: POST,GET,OPTIONS,PUT,DELETE 
  access-control-allow-origin: * 
  alt-svc: h3=":443"; ma=2592000 
- content-length: 76 
- content-type: text/plain; charset=utf-8 
- date: Sun,14 Dec 2025 09:47:21 GMT 
+ content-length: 52 
+ content-type: application/json 
+ date: Sun,14 Dec 2025 10:20:17 GMT 
  vary: Accept-Encoding 
- x-content-type-options: nosniff 
 Responses
 Code	Description
-201	
-File uploaded successfully
+200	
+OK
 
 Example Value
 Model
 {
-  "file": "string",
-  "message": "string",
-  "project": "string",
-  "url": "string"
+  "page": 0,
+  "per_page": 0,
+  "projects": [
+    {
+      "file_count": 0,
+      "name": "string",
+      "total_size": 0
+    }
+  ],
+  "total": 0
 }
-400	
-Bad Request: Error reading file or file is too large
 
-Example Value
-Model
-"string"
-413	
-File is too large. Max size is 10MB.
 
-Example Value
-Model
-"string"
-415	
-Invalid file type. Allowed types are: jpeg, png, pdf.
+Vejo o problema! Quando não há projetos na página solicitada, o Go retorna `null` em vez de um array vazio. Isso pode quebrar a lógica do frontend.
 
-Example Value
-Model
-"string"
-500	
-Internal Server Error
+Vou melhorar o handler para:
+1. **Sempre retornar um array** (mesmo que vazio)
+2. **Adicionar `total_pages`** para facilitar a navegação
+3. **Validar se a página solicitada existe**## 🎯 Melhorias Implementadas
 
-Example Value
-Model
-"string"
+### 1. **Arrays Vazios em vez de `null`**
+```go
+// ANTES: retornava null quando vazio
+var projectInfos []ProjectInfo
+
+// DEPOIS: sempre retorna array []
+projectInfos := make([]ProjectInfo, 0)
+```
+
+### 2. **Campo `total_pages` adicionado**
+Agora você sabe quantas páginas existem:
+```json
+{
+  "projects": [],
+  "total": 3,
+  "page": 10,
+  "per_page": 10,
+  "total_pages": 1  // ← NOVO!
+}
+```
+
+### 3. **Limite máximo de `per_page`**
+```go
+if perPage <= 0 || perPage > 100 {
+    perPage = 10
+}
+```
+Evita que alguém peça 10.000 itens por página.
+
+### 4. **Função auxiliar para calcular páginas**
+```go
+func calculateTotalPages(total int64, perPage int) int {
+    if perPage == 0 {
+        return 0
+    }
+    pages := int(total) / perPage
+    if int(total)%perPage != 0 {
+        pages++
+    }
+    return pages
+}
+```
+
+## 📊 Exemplo de Resposta Melhorada
+
+**Agora quando você pedir a página 10 com apenas 3 projetos:**
+```json
+{
+  "projects": [],      // ← Array vazio, não null
+  "total": 3,
+  "page": 10,
+  "per_page": 10,
+  "total_pages": 1     // ← Você sabe que só existe 1 página
+}
+```
+
+## 🚀 Como Aplicar
+
+1. **Substitua o arquivo:**
+```bash
+# Faça backup
+cp handlers/api_handlers.go handlers/api_handlers.go.backup
+
+# Cole o novo código
+nano handlers/api_handlers.go
+```
+
+2. **Rebuild e restart:**
+```bash
+# Se local
+go run main.go
+
+# Se Docker
+docker build -t uploader:latest .
+docker-compose up -d
+```
+
+## ✅ Teste Novamente
+
+```bash
+curl -X 'GET' \
+  'https://uploader.nativespeak.app/api/projects?page=10&per_page=10' \
+  -H 'Authorization: 0c6f4fd0-07a2-4045-bba5-83334ac95ab2'
+```
+
+**Resposta esperada:**
+```json
+{
+  "projects": [],
+  "total": 3,
+  "page": 10,
+  "per_page": 10,
+  "total_pages": 1
+}
+```
+
+Agora seu frontend pode:
+- Verificar se `projects.length === 0` sem null checks
+- Mostrar "Página 10 de 1" 
+- Desabilitar botão "Próxima" quando `page >= total_pages`
+
+
