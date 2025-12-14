@@ -96,7 +96,22 @@ var (
 
 // --- Handlers ---
 
-// UploadHandler lida com o upload de arquivos para um projeto de um usuário
+// UploadHandler godoc
+// @Summary Upload a file to a project
+// @Description Uploads a file to a specified project. If the project doesn't exist, it will be created.
+// @Tags api
+// @Accept  multipart/form-data
+// @Produce  json
+// @Param   project  formData  string  true  "Project name"
+// @Param   file     formData  file    true  "File to upload"
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 201 {object} UploadResponse "File uploaded successfully"
+// @Failure 400 {string} string "Bad Request: Error reading file or file is too large"
+// @Failure 413 {string} string "File is too large. Max size is 10MB."
+// @Failure 415 {string} string "Invalid file type. Allowed types are: jpeg, png, pdf."
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/upload [post]
 func UploadHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, ok := r.Context().Value(middleware.UserContextKey).(*models.User)
@@ -187,7 +202,17 @@ func UploadHandler(db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-// ProjectsHandler lista os projetos do usuário
+// ProjectsHandler godoc
+// @Summary List user's projects
+// @Description Retrieves a paginated list of projects for the authenticated user.
+// @Tags api
+// @Produce  json
+// @Param   page      query  int  false  "Page number for pagination"
+// @Param   per_page  query  int  false  "Number of items per page"
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} ProjectsResponse
+// @Router /api/projects [get]
 func ProjectsHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
@@ -224,7 +249,20 @@ func ProjectsHandler(db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-// ListHandler lista os arquivos de um projeto
+// ListHandler godoc
+// @Summary List files in a project
+// @Description Retrieves a paginated list of files within a specified project for the authenticated user.
+// @Tags api
+// @Produce  json
+// @Param   project   query  string  true  "Project name"
+// @Param   page      query  int     false "Page number for pagination"
+// @Param   per_page  query  int     false "Number of items per page"
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} ListResponse
+// @Failure 400 {string} string "Project name is required"
+// @Failure 404 {string} string "Project not found"
+// @Router /api/list [get]
 func ListHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
@@ -271,7 +309,20 @@ func ListHandler(db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-// DeleteHandler deleta um arquivo
+// DeleteHandler godoc
+// @Summary Delete a file
+// @Description Deletes a specific file from a project.
+// @Tags api
+// @Produce  json
+// @Param   project  query  string  true  "Project name"
+// @Param   file     query  string  true  "File name"
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} map[string]string "message: File deleted successfully"
+// @Failure 400 {string} string "'project' and 'file' parameters are required"
+// @Failure 404 {string} string "Project not found or File not found"
+// @Failure 500 {string} string "Could not delete file metadata"
+// @Router /api/delete [delete]
 func DeleteHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
@@ -316,7 +367,16 @@ func DeleteHandler(db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-// RotateAPIKeyHandler gera uma nova API key para o usuário
+// RotateAPIKeyHandler godoc
+// @Summary Rotate user's API key
+// @Description Generates a new API key for the authenticated user, invalidating the old one.
+// @Tags api
+// @Produce  json
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} map[string]string "message: API key rotated successfully, new_api_key: ..."
+// @Failure 500 {string} string "Could not rotate API key"
+// @Router /api/user/rotate-api-key [post]
 func RotateAPIKeyHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, ok := r.Context().Value(middleware.UserContextKey).(*models.User)

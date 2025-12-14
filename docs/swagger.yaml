@@ -1,0 +1,395 @@
+basePath: /
+definitions:
+  handlers.AuthRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  handlers.AuthResponse:
+    properties:
+      forge_api_key:
+        type: string
+      message:
+        type: string
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  handlers.FileInfo:
+    properties:
+      name:
+        type: string
+      size:
+        type: integer
+      uploaded_at:
+        type: string
+      url:
+        type: string
+    type: object
+  handlers.ListResponse:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/handlers.FileInfo'
+        type: array
+      page:
+        type: integer
+      per_page:
+        type: integer
+      project:
+        type: string
+      total:
+        type: integer
+    type: object
+  handlers.ProjectInfo:
+    properties:
+      file_count:
+        type: integer
+      name:
+        type: string
+      total_size:
+        type: integer
+    type: object
+  handlers.ProjectsResponse:
+    properties:
+      page:
+        type: integer
+      per_page:
+        type: integer
+      projects:
+        items:
+          $ref: '#/definitions/handlers.ProjectInfo'
+        type: array
+      total:
+        type: integer
+    type: object
+  handlers.UploadResponse:
+    properties:
+      file:
+        type: string
+      message:
+        type: string
+      project:
+        type: string
+      url:
+        type: string
+    type: object
+  models.File:
+    properties:
+      id:
+        type: integer
+      mimeType:
+        type: string
+      name:
+        type: string
+      path:
+        type: string
+      projectID:
+        type: integer
+      size:
+        type: integer
+      uploadedAt:
+        type: string
+    type: object
+  models.Project:
+    properties:
+      createdAt:
+        type: string
+      files:
+        items:
+          $ref: '#/definitions/models.File'
+        type: array
+      id:
+        type: integer
+      name:
+        type: string
+      userID:
+        type: integer
+    type: object
+  models.User:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      forgeAPIKey:
+        type: string
+      id:
+        type: integer
+      password:
+        type: string
+      projects:
+        items:
+          $ref: '#/definitions/models.Project'
+        type: array
+    type: object
+host: localhost:8002
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a file upload and management API.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: MidiaForge API
+  version: "1.0"
+paths:
+  /api/delete:
+    delete:
+      description: Deletes a specific file from a project.
+      parameters:
+      - description: Project name
+        in: query
+        name: project
+        required: true
+        type: string
+      - description: File name
+        in: query
+        name: file
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: File deleted successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: '''project'' and ''file'' parameters are required'
+          schema:
+            type: string
+        "404":
+          description: Project not found or File not found
+          schema:
+            type: string
+        "500":
+          description: Could not delete file metadata
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      - APIKeyAuth: []
+      summary: Delete a file
+      tags:
+      - api
+  /api/list:
+    get:
+      description: Retrieves a paginated list of files within a specified project
+        for the authenticated user.
+      parameters:
+      - description: Project name
+        in: query
+        name: project
+        required: true
+        type: string
+      - description: Page number for pagination
+        in: query
+        name: page
+        type: integer
+      - description: Number of items per page
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ListResponse'
+        "400":
+          description: Project name is required
+          schema:
+            type: string
+        "404":
+          description: Project not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      - APIKeyAuth: []
+      summary: List files in a project
+      tags:
+      - api
+  /api/projects:
+    get:
+      description: Retrieves a paginated list of projects for the authenticated user.
+      parameters:
+      - description: Page number for pagination
+        in: query
+        name: page
+        type: integer
+      - description: Number of items per page
+        in: query
+        name: per_page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ProjectsResponse'
+      security:
+      - BearerAuth: []
+      - APIKeyAuth: []
+      summary: List user's projects
+      tags:
+      - api
+  /api/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a file to a specified project. If the project doesn't exist,
+        it will be created.
+      parameters:
+      - description: Project name
+        in: formData
+        name: project
+        required: true
+        type: string
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: File uploaded successfully
+          schema:
+            $ref: '#/definitions/handlers.UploadResponse'
+        "400":
+          description: 'Bad Request: Error reading file or file is too large'
+          schema:
+            type: string
+        "413":
+          description: File is too large. Max size is 10MB.
+          schema:
+            type: string
+        "415":
+          description: 'Invalid file type. Allowed types are: jpeg, png, pdf.'
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      - APIKeyAuth: []
+      summary: Upload a file to a project
+      tags:
+      - api
+  /api/user/rotate-api-key:
+    post:
+      description: Generates a new API key for the authenticated user, invalidating
+        the old one.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: API key rotated successfully, new_api_key: ...'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Could not rotate API key
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      - APIKeyAuth: []
+      summary: Rotate user's API key
+      tags:
+      - api
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns a JWT token.
+      parameters:
+      - description: User login credentials
+        in: body
+        name: auth_request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logged in successfully
+          schema:
+            $ref: '#/definitions/handlers.AuthResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials
+          schema:
+            type: string
+        "500":
+          description: Could not generate token
+          schema:
+            type: string
+      summary: Log in a user
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account and returns the user info along with
+        an API key.
+      parameters:
+      - description: User registration details
+        in: body
+        name: auth_request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.AuthRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            $ref: '#/definitions/handlers.AuthResponse'
+        "400":
+          description: Invalid request body or missing fields
+          schema:
+            type: string
+        "500":
+          description: Could not create user
+          schema:
+            type: string
+      summary: Register a new user
+      tags:
+      - auth
+schemes:
+- http
+securityDefinitions:
+  APIKeyAuth:
+    description: API key for external services.
+    in: header
+    name: Authorization
+    type: apiKey
+  BearerAuth:
+    description: Type "Bearer" followed by a space and a JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

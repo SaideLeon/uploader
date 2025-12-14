@@ -1,4 +1,29 @@
-		package main
+		// @title MidiaForge API
+// @version 1.0
+// @description This is a file upload and management API.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:8002
+// @BasePath /
+// @schemes http
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and a JWT token.
+
+// @securityDefinitions.apikey APIKeyAuth
+// @in header
+// @name Authorization
+// @description API key for external services.
+package main
 		
 		import (
 			"fmt"
@@ -12,34 +37,38 @@
 			"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/database"
 			"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/handlers"
 			"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/middleware"
-	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/util"
-		)
-		
-		var (
-			DB *gorm.DB
-		)
-		
-		func main() {
-			// Carrega configuração
-			config.LoadConfig()
-		
-			// Conecta ao banco de dados
-			var err error
-			DB, err = database.Connect()
-			if err != nil {
-				log.Fatal("Falha ao conectar ao banco de dados:", err)
-			}
-			log.Println("Conexão com o banco de dados estabelecida.")
-		
-			// Cria pasta uploads se não existir
-			os.MkdirAll("./uploads", os.ModePerm)
-		
-				mux := http.NewServeMux()
-			
-				// Endpoints de autenticação (públicos)
-				mux.HandleFunc("/register", handlers.RegisterHandler(DB))
-				mux.HandleFunc("/login", handlers.LoginHandler(DB))
-			
+		"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/util"
+		swagger "github.com/swaggo/http-swagger"
+		_ "github.com/GoogleCloudPlatform/golang-samples/run/helloworld/docs"
+	)
+	
+	var (
+		DB *gorm.DB
+	)
+	
+	func main() {
+		// Carrega configuração
+		config.LoadConfig()
+	
+		// Conecta ao banco de dados
+		var err error
+		DB, err = database.Connect()
+		if err != nil {
+			log.Fatal("Falha ao conectar ao banco de dados:", err)
+		}
+		log.Println("Conexão com o banco de dados estabelecida.")
+	
+		// Cria pasta uploads se não existir
+		os.MkdirAll("./uploads", os.ModePerm)
+	
+		mux := http.NewServeMux()
+	
+		// Swagger UI
+		mux.HandleFunc("/swagger/", swagger.WrapHandler)
+	
+		// Endpoints de autenticação (públicos)
+		mux.HandleFunc("/register", handlers.RegisterHandler(DB))
+		mux.HandleFunc("/login", handlers.LoginHandler(DB))			
 				// API Endpoints (protegidos)
 				api := http.NewServeMux()
 				api.HandleFunc("/upload", handlers.UploadHandler(DB))

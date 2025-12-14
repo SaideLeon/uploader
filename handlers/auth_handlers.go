@@ -21,7 +21,17 @@ type AuthResponse struct {
 	ForgeAPIKey string       `json:"forge_api_key,omitempty"`
 }
 
-// RegisterHandler cria uma nova conta de usuário
+// RegisterHandler godoc
+// @Summary Register a new user
+// @Description Creates a new user account and returns the user info along with an API key.
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   auth_request  body  AuthRequest  true  "User registration details"
+// @Success 201 {object} AuthResponse "User created successfully"
+// @Failure 400 {string} string "Invalid request body or missing fields"
+// @Failure 500 {string} string "Could not create user"
+// @Router /register [post]
 func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -65,7 +75,18 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 	}
 }
 
-// LoginHandler autentica um usuário e retorna um JWT
+// LoginHandler godoc
+// @Summary Log in a user
+// @Description Authenticates a user and returns a JWT token.
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   auth_request  body  AuthRequest  true  "User login credentials"
+// @Success 200 {object} AuthResponse "Logged in successfully"
+// @Failure 400 {string} string "Invalid request body"
+// @Failure 401 {string} string "Invalid credentials"
+// @Failure 500 {string} string "Could not generate token"
+// @Router /login [post]
 func LoginHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
