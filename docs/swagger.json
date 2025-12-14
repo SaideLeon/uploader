@@ -23,6 +23,14 @@
     "paths": {
         "/api/delete": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
                 "description": "Deletes a specific file from a project.",
                 "produces": [
                     "application/json"
@@ -75,7 +83,11 @@
                             "type": "string"
                         }
                     }
-                },
+                }
+            }
+        },
+        "/api/list": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -83,11 +95,7 @@
                     {
                         "APIKeyAuth": []
                     }
-                ]
-            }
-        },
-        "/api/list": {
-            "get": {
+                ],
                 "description": "Retrieves a paginated list of files within a specified project for the authenticated user.",
                 "produces": [
                     "application/json"
@@ -136,7 +144,11 @@
                             "type": "string"
                         }
                     }
-                },
+                }
+            }
+        },
+        "/api/projects": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -144,11 +156,7 @@
                     {
                         "APIKeyAuth": []
                     }
-                ]
-            }
-        },
-        "/api/projects": {
-            "get": {
+                ],
                 "description": "Retrieves a paginated list of projects for the authenticated user.",
                 "produces": [
                     "application/json"
@@ -178,7 +186,11 @@
                             "$ref": "#/definitions/handlers.ProjectsResponse"
                         }
                     }
-                },
+                }
+            }
+        },
+        "/api/upload": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -186,11 +198,7 @@
                     {
                         "APIKeyAuth": []
                     }
-                ]
-            }
-        },
-        "/api/upload": {
-            "post": {
+                ],
                 "description": "Uploads a file to a specified project. If the project doesn't exist, it will be created.",
                 "consumes": [
                     "multipart/form-data"
@@ -249,7 +257,11 @@
                             "type": "string"
                         }
                     }
-                },
+                }
+            }
+        },
+        "/api/user/rotate-api-key": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -257,11 +269,7 @@
                     {
                         "APIKeyAuth": []
                     }
-                ]
-            }
-        },
-        "/api/user/rotate-api-key": {
-            "post": {
+                ],
                 "description": "Generates a new API key for the authenticated user, invalidating the old one.",
                 "produces": [
                     "application/json"
@@ -286,15 +294,7 @@
                             "type": "string"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    },
-                    {
-                        "APIKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/login": {

@@ -26,6 +26,14 @@ const docTemplate = `{
     "paths": {
         "/api/delete": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "APIKeyAuth": []
+                    }
+                ],
                 "description": "Deletes a specific file from a project.",
                 "produces": [
                     "application/json"
@@ -78,7 +86,11 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
-                },
+                }
+            }
+        },
+        "/api/list": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -86,11 +98,7 @@ const docTemplate = `{
                     {
                         "APIKeyAuth": []
                     }
-                ]
-            }
-        },
-        "/api/list": {
-            "get": {
+                ],
                 "description": "Retrieves a paginated list of files within a specified project for the authenticated user.",
                 "produces": [
                     "application/json"
@@ -139,7 +147,11 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
-                },
+                }
+            }
+        },
+        "/api/projects": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -147,11 +159,7 @@ const docTemplate = `{
                     {
                         "APIKeyAuth": []
                     }
-                ]
-            }
-        },
-        "/api/projects": {
-            "get": {
+                ],
                 "description": "Retrieves a paginated list of projects for the authenticated user.",
                 "produces": [
                     "application/json"
@@ -181,7 +189,11 @@ const docTemplate = `{
                             "$ref": "#/definitions/handlers.ProjectsResponse"
                         }
                     }
-                },
+                }
+            }
+        },
+        "/api/upload": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -189,11 +201,7 @@ const docTemplate = `{
                     {
                         "APIKeyAuth": []
                     }
-                ]
-            }
-        },
-        "/api/upload": {
-            "post": {
+                ],
                 "description": "Uploads a file to a specified project. If the project doesn't exist, it will be created.",
                 "consumes": [
                     "multipart/form-data"
@@ -252,7 +260,11 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
-                },
+                }
+            }
+        },
+        "/api/user/rotate-api-key": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
@@ -260,11 +272,7 @@ const docTemplate = `{
                     {
                         "APIKeyAuth": []
                     }
-                ]
-            }
-        },
-        "/api/user/rotate-api-key": {
-            "post": {
+                ],
                 "description": "Generates a new API key for the authenticated user, invalidating the old one.",
                 "produces": [
                     "application/json"
@@ -289,15 +297,7 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    },
-                    {
-                        "APIKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/login": {
@@ -614,9 +614,9 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8002",
+	Host:             "uploader.nativespeak.app",
 	BasePath:         "/",
-	Schemes:          []string{"http"},
+	Schemes:          []string{"https"},
 	Title:            "MidiaForge API",
 	Description:      "This is a file upload and management API.",
 	InfoInstanceName: "swagger",

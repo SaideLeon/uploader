@@ -10,9 +10,9 @@
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host localhost:8002
+// @host uploader.nativespeak.app
 // @BasePath /
-// @schemes http
+// @schemes https
 
 // @securityDefinitions.apikey BearerAuth
 // @in header
