@@ -1,58 +1,190 @@
+Execute
+Clear
+Responses
+Response content type
 
+application/json
+Curl
+
+curl -X 'POST' \
+  'https://uploader.nativespeak.app/api/upload' \
+  -H 'accept: application/json' \
+  -H 'Authorization: 1f98f668-179a-4a4e-9b54-3a8528a51784' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'project=PhotoMind' \
+  -F 'file=@guerra.png;type=image/png'
+Request URL
+https://uploader.nativespeak.app/api/upload
+Server response
 Code	Details
-200	
+401
+Undocumented
+Error: response status is 401
+
 Response body
 Download
-{
-  "message": "Logged in successfully",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJlbWFpbCI6InNhaWRlb21hcnNhaWRlQGdtYWlsLmNvbSIsImlzcyI6ImZvcmdlLXVwbG9hZGVyIiwiZXhwIjoxNzY1NzkwNzE2LCJpYXQiOjE3NjU3MDQzMTZ9.qgfB7TyVhxAAE0XqhtdS1YkJqLHq1eOsj_UEQGxs4jQ"
-}
+Invalid Authorization header format
 Response headers
  access-control-allow-headers: Accept,Content-Type,Content-Length,Accept-Encoding,X-CSRF-Token,Authorization 
  access-control-allow-methods: POST,GET,OPTIONS,PUT,DELETE 
  access-control-allow-origin: * 
  alt-svc: h3=":443"; ma=2592000 
- content-length: 269 
- content-type: application/json 
- date: Sun,14 Dec 2025 09:25:16 GMT 
+ content-length: 36 
+ content-type: text/plain; charset=utf-8 
+ date: Sun,14 Dec 2025 09:34:45 GMT 
  vary: Accept-Encoding 
+ x-content-type-options: nosniff 
 Responses
 Code	Description
-200	
-Logged in successfully
+201	
+File uploaded successfully
 
 Example Value
 Model
 {
-  "forge_api_key": "string",
+  "file": "string",
   "message": "string",
-  "token": "string",
-  "user": {
-    "createdAt": "string",
-    "email": "string",
-    "forgeAPIKey": "string",
-    "id": 0,
-    "password": "string",
-    "projects": [
-      {
-        "createdAt": "string",
-        "files": [
-          {
-            "id": 0,
-            "mimeType": "string",
-            "name": "string",
-            "path": "string",
-            "projectID": 0,
-            "size": 0,
-            "uploadedAt": "string"
-          }
-        ],
-        "id": 0,
-        "name": "string",
-        "userID": 0
-      }
-    ]
-  }
+  "project": "string",
+  "url": "string"
 }
 400	
-Invalid request body
+Bad Request: Error reading file or file is too large
+
+Example Value
+Model
+"string"
+413	
+File is too large. Max size is 10MB.
+
+Example Value
+Model
+"string"
+415	
+Invalid file type. Allowed types are: jpeg, png, pdf.
+
+Example Value
+Model
+"string"
+500	
+Internal Server Error
+
+Example Value
+Model
+"string"
+
+
+O erro **401 – “Invalid Authorization header format”** não está relacionado ao upload em si, mas **à forma como o header `Authorization` está sendo enviado**.
+
+Vamos por partes, com rigor técnico.
+
+---
+
+## 1️⃣ O que o servidor está dizendo de verdade
+
+A mensagem é clara:
+
+> **Invalid Authorization header format**
+
+Ou seja:
+👉 **o token até pode ser válido**, mas **o formato do header não é o que a API espera**.
+
+Atualmente você está enviando:
+
+```http
+Authorization: 1f98f668-179a-4a4e-9b54-3a8528a51784
+```
+
+Isso **não segue nenhum padrão comum de autenticação HTTP**.
+
+---
+
+## 2️⃣ Padrão correto (hipótese mais provável)
+
+Quase todas as APIs modernas esperam o formato:
+
+```http
+Authorization: Bearer SEU_TOKEN_AQUI
+```
+
+Então o header correto seria:
+
+```http
+Authorization: Bearer 1f98f668-179a-4a4e-9b54-3a8528a51784
+```
+
+---
+
+## 3️⃣ Curl corrigido (versão funcional)
+
+```bash
+curl -X POST \
+  'https://uploader.nativespeak.app/api/upload' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer 1f98f668-179a-4a4e-9b54-3a8528a51784' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'project=PhotoMind' \
+  -F 'file=@guerra.png;type=image/png'
+```
+
+👉 **90% de chance de isso resolver imediatamente.**
+
+---
+
+## 4️⃣ Se ainda falhar: teste crítico (validação do backend)
+
+Se mesmo com `Bearer` continuar retornando 401, então há **uma destas possibilidades**:
+
+### 🔹 A API espera outro prefixo
+
+Exemplos menos comuns:
+
+```http
+Authorization: ApiKey SEU_TOKEN
+Authorization: Token SEU_TOKEN
+Authorization: FORGE_API_KEY SEU_TOKEN
+```
+
+Você precisa conferir **no backend** algo como:
+
+```go
+authHeader := r.Header.Get("Authorization")
+```
+
+E verificar se existe código do tipo:
+
+```go
+strings.HasPrefix(authHeader, "Bearer ")
+```
+
+Se existir → **Bearer é obrigatório**
+Se não existir → o backend está mal especificado
+
+---
+
+## 5️⃣ Crítica construtiva ao design da API (importante)
+
+Do ponto de vista de engenharia:
+
+* ❌ Retornar apenas *“Invalid Authorization header format”* é pouco informativo
+* ✅ O ideal seria:
+
+  ```json
+  {
+    "error": "Authorization header must be in format: Bearer <token>"
+  }
+  ```
+
+Isso reduz drasticamente fricção para desenvolvedores.
+
+Se você está desenvolvendo essa API (ou pode alterá-la), **vale corrigir isso**.
+
+---
+
+## 6️⃣ Conclusão objetiva
+
+✔ O upload está correto
+✔ O `multipart/form-data` está correto
+❌ O **Authorization header está errado**
+
+👉 **Use `Bearer <token>`**
+

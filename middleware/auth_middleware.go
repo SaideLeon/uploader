@@ -26,35 +26,41 @@ func AuthMiddleware(db *gorm.DB, next http.Handler) http.Handler {
 			return
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			http.Error(w, "Invalid Authorization header format", http.StatusUnauthorized)
-			return
-		}
-
-		tokenString := parts[1]
+		var tokenString string
 		var user *models.User
 
-		// Try to parse as JWT first
-		claims := &util.Claims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(config.AppConfig.JWTSecret), nil
-		})
 
-		if err == nil && token.Valid {
-			// JWT is valid, find user by ID
-			var u models.User
-			if err := db.First(&u, claims.UserID).Error; err == nil {
-				user = &u
+		// Check for Bearer token format
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+			// Try to parse as JWT
+			claims := &util.Claims{}
+			token, jwtErr := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+				return []byte(config.AppConfig.JWTSecret), nil
+			})
+
+			if jwtErr == nil && token.Valid {
+				// JWT is valid, find user by ID
+				var u models.User
+				if err := db.First(&u, claims.UserID).Error; err == nil {
+					user = &u
+				}
+			} else {
+				// If JWT is invalid, try to use the tokenString as API key
+				var u models.User
+				if err := db.First(&u, "forge_api_key = ?", tokenString).Error; err == nil {
+					user = &u
+				}
 			}
 		} else {
-			// If not a valid JWT, treat it as a FORGE_API_KEY
+			// If not "Bearer", assume it might be a raw API key
+			tokenString = authHeader
 			var u models.User
 			if err := db.First(&u, "forge_api_key = ?", tokenString).Error; err == nil {
 				user = &u
 			}
 		}
-
+		
 		if user == nil {
 			http.Error(w, "Invalid token or API key", http.StatusUnauthorized)
 			return

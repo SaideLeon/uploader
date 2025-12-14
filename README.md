@@ -159,15 +159,20 @@ https://uploader.nativespeak.app/
 
 ### Autenticação
 
-A autenticação pode ser feita de duas formas:
-1.  **Token JWT**: Obtido no endpoint `/login`. Válido por 24 horas.
-2.  **Chave de API**: Obtida no momento do registro (`/register`) ou ao rotacionar a chave (`/api/user/rotate-api-key`).
+A autenticação pode ser feita de duas formas, enviando o token ou a chave no cabeçalho `Authorization`:
 
-Em ambos os casos, o token ou a chave devem ser enviados no cabeçalho `Authorization`.
-
-```
-Authorization: Bearer <SEU_TOKEN_JWT_OU_API_KEY>
-```
+1.  **Token JWT (com prefixo `Bearer`)**: Obtido no endpoint `/login`. Válido por 24 horas.
+    ```
+    Authorization: Bearer <SEU_TOKEN_JWT>
+    ```
+2.  **Chave de API (direta)**: Obtida no momento do registro (`/register`) ou ao rotacionar a chave (`/api/user/rotate-api-key`).
+    ```
+    Authorization: <SUA_FORGE_API_KEY>
+    ```
+    Ou, para compatibilidade, também pode ser enviada com o prefixo `Bearer`:
+    ```
+    Authorization: Bearer <SUA_FORGE_API_KEY>
+    ```
 
 --- 
 
