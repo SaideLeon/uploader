@@ -421,3 +421,59 @@ func RotateAPIKeyHandler(db *gorm.DB) http.HandlerFunc {
 		})
 	}
 }
+
+// DeleteProjectHandler godoc
+// @Summary Delete an empty project
+// @Description Deletes a project that has no files. Projects with files cannot be deleted.
+// @Tags api
+// @Produce  json
+// @Param   project  query  string  true  "Project name"
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} map[string]string "message: Project deleted successfully"
+// @Failure 400 {string} string "Project name is required or Project has files and cannot be deleted"
+// @Failure 404 {string} string "Project not found"
+// @Failure 500 {string} string "Could not delete project"
+// @Router /api/project/delete [delete]
+func DeleteProjectHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
+		projectName := r.URL.Query().Get("project")
+
+		if projectName == "" {
+			http.Error(w, "Project name is required", http.StatusBadRequest)
+			return
+		}
+
+		var project models.Project
+		if err := db.First(&project, "name = ? AND user_id = ?", projectName, user.ID).Error; err != nil {
+			http.Error(w, "Project not found", http.StatusNotFound)
+			return
+		}
+
+		// Verificar se o projeto tem arquivos
+		var fileCount int64
+		db.Model(&models.File{}).Where("project_id = ?", project.ID).Count(&fileCount)
+		
+		if fileCount > 0 {
+			http.Error(w, "Project has files and cannot be deleted. Delete all files first.", http.StatusBadRequest)
+			return
+		}
+
+		// Deletar o projeto
+		if err := db.Delete(&project).Error; err != nil {
+			http.Error(w, "Could not delete project: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Tentar remover o diretório vazio
+		projectDir := filepath.Join("./uploads", fmt.Sprintf("user_%d", user.ID), projectName)
+		os.Remove(projectDir) // Ignora erro se não existir
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Project deleted successfully",
+			"project": projectName,
+		})
+	}
+}

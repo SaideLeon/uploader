@@ -43,6 +43,8 @@ definitions:
         type: string
       total:
         type: integer
+      total_pages:
+        type: integer
     type: object
   handlers.ProjectInfo:
     properties:
@@ -64,6 +66,8 @@ definitions:
           $ref: '#/definitions/handlers.ProjectInfo'
         type: array
       total:
+        type: integer
+      total_pages:
         type: integer
     type: object
   handlers.UploadResponse:
@@ -218,6 +222,44 @@ paths:
       - BearerAuth: []
       - APIKeyAuth: []
       summary: List files in a project
+      tags:
+      - api
+  /api/project/delete:
+    delete:
+      description: Deletes a project that has no files. Projects with files cannot
+        be deleted.
+      parameters:
+      - description: Project name
+        in: query
+        name: project
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: Project deleted successfully'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Project name is required or Project has files and cannot be
+            deleted
+          schema:
+            type: string
+        "404":
+          description: Project not found
+          schema:
+            type: string
+        "500":
+          description: Could not delete project
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      - APIKeyAuth: []
+      summary: Delete an empty project
       tags:
       - api
   /api/projects:

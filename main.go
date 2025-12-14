@@ -75,6 +75,7 @@ package main
 				api.HandleFunc("/projects", handlers.ProjectsHandler(DB))
 				api.HandleFunc("/list", handlers.ListHandler(DB))
 				api.HandleFunc("/delete", handlers.DeleteHandler(DB))
+				api.HandleFunc("/project/delete", handlers.DeleteProjectHandler(DB))
 				api.HandleFunc("/user/rotate-api-key", handlers.RotateAPIKeyHandler(DB))
 			
 				// Aplica middleware de autenticação à API

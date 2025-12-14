@@ -1,158 +1,133 @@
-Curl
+Perfeito! 🎉 Agora está funcionando corretamente! 
 
-curl -X 'GET' \
-  'https://uploader.nativespeak.app/api/projects?page=10&per_page=10' \
-  -H 'accept: application/json' \
-  -H 'Authorization: 0c6f4fd0-07a2-4045-bba5-83334ac95ab2'
-Request URL
-https://uploader.nativespeak.app/api/projects?page=10&per_page=10
-Server response
-Code	Details
-200	
-Response body
-Download
-{
-  "projects": null,
-  "total": 3,
-  "page": 10,
-  "per_page": 10
-}
-Response headers
- access-control-allow-headers: Accept,Content-Type,Content-Length,Accept-Encoding,X-CSRF-Token,Authorization 
- access-control-allow-methods: POST,GET,OPTIONS,PUT,DELETE 
- access-control-allow-origin: * 
- alt-svc: h3=":443"; ma=2592000 
- content-length: 52 
- content-type: application/json 
- date: Sun,14 Dec 2025 10:20:17 GMT 
- vary: Accept-Encoding 
-Responses
-Code	Description
-200	
-OK
+## ✅ O que você está vendo
 
-Example Value
-Model
-{
-  "page": 0,
-  "per_page": 0,
-  "projects": [
-    {
-      "file_count": 0,
-      "name": "string",
-      "total_size": 0
-    }
-  ],
-  "total": 0
-}
+Você tem **3 projetos** nesta conta:
 
+### 📊 Detalhamento
 
-Vejo o problema! Quando não há projetos na página solicitada, o Go retorna `null` em vez de um array vazio. Isso pode quebrar a lógica do frontend.
+| Projeto | Arquivos | Tamanho Total | Status |
+|---------|----------|---------------|--------|
+| **photo** | 0 | 0 bytes | Vazio (criado mas sem uploads) |
+| **photod** | 0 | 0 bytes | Vazio (criado mas sem uploads) |
+| **docph** | 2 | ~6 MB | ✅ Ativo com arquivos |
 
-Vou melhorar o handler para:
-1. **Sempre retornar um array** (mesmo que vazio)
-2. **Adicionar `total_pages`** para facilitar a navegação
-3. **Validar se a página solicitada existe**## 🎯 Melhorias Implementadas
+### 🔍 Por que `photo` e `photod` estão vazios?
 
-### 1. **Arrays Vazios em vez de `null`**
+Esses projetos foram criados automaticamente quando você tentou fazer upload pela primeira vez, mas os uploads podem ter:
+- Falhado (erro de permissão que resolvemos)
+- Sido deletados depois
+- Nunca completaram
+
+### 🧹 Limpar projetos vazios (opcional)
+
+Se quiser remover projetos sem arquivos, você pode adicionar um endpoint. Vou criar para você:## 📋 Como adicionar o endpoint de deletar projeto
+
+### 1. Adicione o handler no arquivo `handlers/api_handlers.go`
+
+Cole a função `DeleteProjectHandler` no final do arquivo.
+
+### 2. Registre a rota no `main.go`
+
+Adicione esta linha onde estão os outros endpoints da API:
+
 ```go
-// ANTES: retornava null quando vazio
-var projectInfos []ProjectInfo
-
-// DEPOIS: sempre retorna array []
-projectInfos := make([]ProjectInfo, 0)
+// Em main.go, na seção de API Endpoints:
+api := http.NewServeMux()
+api.HandleFunc("/upload", handlers.UploadHandler(DB))
+api.HandleFunc("/projects", handlers.ProjectsHandler(DB))
+api.HandleFunc("/list", handlers.ListHandler(DB))
+api.HandleFunc("/delete", handlers.DeleteHandler(DB))
+api.HandleFunc("/project/delete", handlers.DeleteProjectHandler(DB)) // ← NOVA LINHA
+api.HandleFunc("/user/rotate-api-key", handlers.RotateAPIKeyHandler(DB))
 ```
 
-### 2. **Campo `total_pages` adicionado**
-Agora você sabe quantas páginas existem:
-```json
-{
-  "projects": [],
-  "total": 3,
-  "page": 10,
-  "per_page": 10,
-  "total_pages": 1  // ← NOVO!
-}
-```
+### 3. Rebuild e teste
 
-### 3. **Limite máximo de `per_page`**
-```go
-if perPage <= 0 || perPage > 100 {
-    perPage = 10
-}
-```
-Evita que alguém peça 10.000 itens por página.
-
-### 4. **Função auxiliar para calcular páginas**
-```go
-func calculateTotalPages(total int64, perPage int) int {
-    if perPage == 0 {
-        return 0
-    }
-    pages := int(total) / perPage
-    if int(total)%perPage != 0 {
-        pages++
-    }
-    return pages
-}
-```
-
-## 📊 Exemplo de Resposta Melhorada
-
-**Agora quando você pedir a página 10 com apenas 3 projetos:**
-```json
-{
-  "projects": [],      // ← Array vazio, não null
-  "total": 3,
-  "page": 10,
-  "per_page": 10,
-  "total_pages": 1     // ← Você sabe que só existe 1 página
-}
-```
-
-## 🚀 Como Aplicar
-
-1. **Substitua o arquivo:**
 ```bash
-# Faça backup
-cp handlers/api_handlers.go handlers/api_handlers.go.backup
-
-# Cole o novo código
-nano handlers/api_handlers.go
-```
-
-2. **Rebuild e restart:**
-```bash
-# Se local
-go run main.go
-
-# Se Docker
+# Rebuild
 docker build -t uploader:latest .
 docker-compose up -d
-```
 
-## ✅ Teste Novamente
-
-```bash
-curl -X 'GET' \
-  'https://uploader.nativespeak.app/api/projects?page=10&per_page=10' \
+# Deletar projeto vazio
+curl -X 'DELETE' \
+  'https://uploader.nativespeak.app/api/project/delete?project=photo' \
   -H 'Authorization: 0c6f4fd0-07a2-4045-bba5-83334ac95ab2'
 ```
 
-**Resposta esperada:**
-```json
-{
-  "projects": [],
-  "total": 3,
-  "page": 10,
-  "per_page": 10,
-  "total_pages": 1
-}
+## 🎯 Ver arquivos do projeto docph
+
+```bash
+curl -X 'GET' \
+  'https://uploader.nativespeak.app/api/list?project=docph' \
+  -H 'Authorization: 0c6f4fd0-07a2-4045-bba5-83334ac95ab2'
 ```
 
-Agora seu frontend pode:
-- Verificar se `projects.length === 0` sem null checks
-- Mostrar "Página 10 de 1" 
-- Desabilitar botão "Próxima" quando `page >= total_pages`
+Isso mostrará os 2 arquivos (~6MB) que estão no projeto **docph**.
+
+---
+
+Sua API está funcionando perfeitamente! 🚀 Os arrays vazios agora aparecem como `[]` e você tem informações completas de paginação com `total_pages`.
 
 
+
+// Adicione este handler em handlers/api_handlers.go
+
+// DeleteProjectHandler godoc
+// @Summary Delete an empty project
+// @Description Deletes a project that has no files. Projects with files cannot be deleted.
+// @Tags api
+// @Produce  json
+// @Param   project  query  string  true  "Project name"
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} map[string]string "message: Project deleted successfully"
+// @Failure 400 {string} string "Project name is required or Project has files and cannot be deleted"
+// @Failure 404 {string} string "Project not found"
+// @Failure 500 {string} string "Could not delete project"
+// @Router /api/project/delete [delete]
+func DeleteProjectHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
+		projectName := r.URL.Query().Get("project")
+
+		if projectName == "" {
+			http.Error(w, "Project name is required", http.StatusBadRequest)
+			return
+		}
+
+		var project models.Project
+		if err := db.First(&project, "name = ? AND user_id = ?", projectName, user.ID).Error; err != nil {
+			http.Error(w, "Project not found", http.StatusNotFound)
+			return
+		}
+
+		// Verificar se o projeto tem arquivos
+		var fileCount int64
+		db.Model(&models.File{}).Where("project_id = ?", project.ID).Count(&fileCount)
+		
+		if fileCount > 0 {
+			http.Error(w, "Project has files and cannot be deleted. Delete all files first.", http.StatusBadRequest)
+			return
+		}
+
+		// Deletar o projeto
+		if err := db.Delete(&project).Error; err != nil {
+			http.Error(w, "Could not delete project: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Tentar remover o diretório vazio
+		projectDir := filepath.Join("./uploads", fmt.Sprintf("user_%d", user.ID), projectName)
+		os.Remove(projectDir) // Ignora erro se não existir
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Project deleted successfully",
+			"project": projectName,
+		})
+	}
+}
+
+// Adicione esta linha em main.go dentro da seção de API endpoints:
+// api.HandleFunc("/project/delete", handlers.DeleteProjectHandler(DB))
