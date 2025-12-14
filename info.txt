@@ -4,81 +4,251 @@ Response content type
 application/json
 Curl
 
-curl -X 'GET' \
-  'https://uploader.nativespeak.app/api/list?project=docph' \
+curl -X 'POST' \
+  'https://uploader.nativespeak.app/login' \
   -H 'accept: application/json' \
-  -H 'Authorization: 0c6f4fd0-07a2-4045-bba5-83334ac95ab2'
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "saideomarsaide@gmail.com",
+  "password": "Damasco12"
+}'
 Request URL
-https://uploader.nativespeak.app/api/list?project=docph
+https://uploader.nativespeak.app/login
 Server response
 Code	Details
 200	
 Response body
 Download
 {
-  "project": "docph",
-  "files": [
-    {
-      "name": "guerra-20251214-100932.png",
-      "url": "http://localhost:8002/files/user_2/docph/guerra-20251214-100932.png",
-      "size": 7426,
-      "uploaded_at": "2025-12-14T10:09:32.588992Z"
-    },
-    {
-      "name": "Gemini_Generated_Image_yltq6wyltq6wyltq-20251214-103520.png",
-      "url": "http://localhost:8002/files/user_2/docph/Gemini_Generated_Image_yltq6wyltq6wyltq-20251214-103520.png",
-      "size": 6036545,
-      "uploaded_at": "2025-12-14T10:35:20.464424Z"
-    }
-  ],
-  "total": 2,
-  "page": 1,
-  "per_page": 10,
-  "total_pages": 1
+  "message": "Logged in successfully",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJlbWFpbCI6InNhaWRlb21hcnNhaWRlQGdtYWlsLmNvbSIsImlzcyI6ImZvcmdlLXVwbG9hZGVyIiwiZXhwIjoxNzY1Nzk2NTQzLCJpYXQiOjE3NjU3MTAxNDN9.jJ3RTd-EaUEctbqL8EYr3cFWo_rjMqk7mRKEyuBzufw",
+  "user": {
+    "ID": 2,
+    "Email": "saideomarsaide@gmail.com",
+    "Password": "",
+    "ForgeAPIKey": "0c6f4fd0-07a2-4045-bba5-83334ac95ab2",
+    "CreatedAt": "2025-12-14T08:39:27.421934Z",
+    "Projects": null
+  },
+  "forge_api_key": "0c6f4fd0-07a2-4045-bba5-83334ac95ab2"
 }
 Response headers
  access-control-allow-headers: Accept,Content-Type,Content-Length,Accept-Encoding,X-CSRF-Token,Authorization 
  access-control-allow-methods: POST,GET,OPTIONS,PUT,DELETE 
  access-control-allow-origin: * 
  alt-svc: h3=":443"; ma=2592000 
- content-length: 488 
+ content-length: 500 
  content-type: application/json 
- date: Sun,14 Dec 2025 10:44:14 GMT 
+ date: Sun,14 Dec 2025 11:02:23 GMT 
  vary: Accept-Encoding 
-Responses
-Code	Description
-200	
-OK
 
-Example Value
-Model
+
+ Perfeito! ✅ Login funcionando corretamente!
+
+## 🔑 Informações da sua conta
+
+| Campo | Valor |
+|-------|-------|
+| **User ID** | 2 |
+| **Email** | saideomarsaide@gmail.com |
+| **API Key** | `0c6f4fd0-07a2-4045-bba5-83334ac95ab2` |
+| **JWT Token** | Válido por 24h (expira: 2025-12-15 11:02) |
+| **Conta criada** | 14 de dezembro de 2025, 08:39 UTC |
+
+## 🎯 Como usar os tokens
+
+### Opção 1: API Key (recomendado para longo prazo)
+```bash
+curl 'https://uploader.nativespeak.app/api/projects' \
+  -H 'Authorization: 0c6f4fd0-07a2-4045-bba5-83334ac95ab2'
+```
+
+### Opção 2: JWT Token (expira em 24h)
+```bash
+curl 'https://uploader.nativespeak.app/api/projects' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+```
+
+## 🔧 Pequena melhoria (opcional)
+
+Notei que `Projects` está retornando `null`. Para manter consistência com os outros endpoints, vou melhorar:Agora, após aplicar essa melhoria, a resposta do login será:
+
+```json
 {
-  "files": [
-    {
-      "name": "string",
-      "size": 0,
-      "uploaded_at": "string",
-      "url": "string"
-    }
-  ],
-  "page": 0,
-  "per_page": 0,
-  "project": "string",
-  "total": 0
+  "message": "Logged in successfully",
+  "token": "eyJhbGci...",
+  "user": {
+    "ID": 2,
+    "Email": "saideomarsaide@gmail.com",
+    "Password": "",
+    "ForgeAPIKey": "0c6f4fd0-07a2-4045-bba5-83334ac95ab2",
+    "CreatedAt": "2025-12-14T08:39:27.421934Z",
+    "Projects": []  // ← Array vazio em vez de null
+  },
+  "forge_api_key": "0c6f4fd0-07a2-4045-bba5-83334ac95ab2"
 }
-400	
-Project name is required
+```
 
-Example Value
-Model
-"string"
-404	
-Project not found
+## 📊 Resumo da sua sessão
 
-Example Value
-Model
-"string"
+Você está autenticado e pode usar:
 
-Sanitização de nomes de arquivos http://localhost:8002/files/user_2/docph/Gemini_Generated_Image_yltq6wyltq6wyltq-20251214-103520.png PARA
-https://uploader.nativespeak.app/files/user_2/docph/Gemini_Generated_Image_yltq6wyltq6wyltq-20251214-103520.png QUANDO RETORNAR
+### 1️⃣ **API Key permanente**
+```
+0c6f4fd0-07a2-4045-bba5-83334ac95ab2
+```
+- ✅ Nunca expira
+- ✅ Use em scripts, apps, integrações
+- ⚠️ Pode ser rotacionada quando necessário
 
+### 2️⃣ **JWT Token temporário** (24h)
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJlbWFpbCI6InNhaWRlb21hcnNhaWRlQGdtYWlsLmNvbSIsImlzcyI6ImZvcmdlLXVwbG9hZGVyIiwiZXhwIjoxNzY1Nzk2NTQzLCJpYXQiOjE3NjU3MTAxNDN9.jJ3RTd-EaUEctbqL8EYr3cFWo_rjMqk7mRKEyuBzufw
+```
+- ✅ Use em aplicações web/mobile
+- ⏰ Expira em 24h (renovável com novo login)
+
+### 3️⃣ **Seus projetos**
+- **docph** - 2 arquivos (~6 MB)
+- **photo** - vazio
+- **photod** - vazio
+
+Tudo funcionando perfeitamente! 🚀
+
+package handlers
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"gorm.io/gorm"
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/models"
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/util"
+)
+
+type AuthRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type AuthResponse struct {
+	Message     string       `json:"message"`
+	Token       string       `json:"token,omitempty"`
+	User        *models.User `json:"user,omitempty"`
+	ForgeAPIKey string       `json:"forge_api_key,omitempty"`
+}
+
+// RegisterHandler godoc
+// @Summary Register a new user
+// @Description Creates a new user account and returns the user info along with an API key.
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   auth_request  body  AuthRequest  true  "User registration details"
+// @Success 201 {object} AuthResponse "User created successfully"
+// @Failure 400 {string} string "Invalid request body or missing fields"
+// @Failure 500 {string} string "Could not create user"
+// @Router /register [post]
+func RegisterHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req AuthRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		// Validação básica
+		if req.Email == "" || req.Password == "" {
+			http.Error(w, "Email and password are required", http.StatusBadRequest)
+			return
+		}
+
+		user := &models.User{
+			Email:    req.Email,
+			Password: req.Password,
+		}
+
+		// O hook BeforeCreate irá gerar a API key e hashear a senha
+		if err := db.Create(user).Error; err != nil {
+			http.Error(w, "Could not create user: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Não retornar a senha e inicializar Projects como array vazio
+		user.Password = ""
+		if user.Projects == nil {
+			user.Projects = make([]models.Project, 0)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(AuthResponse{
+			Message:     "User created successfully",
+			User:        user,
+			ForgeAPIKey: user.ForgeAPIKey,
+		})
+	}
+}
+
+// LoginHandler godoc
+// @Summary Log in a user
+// @Description Authenticates a user and returns a JWT token.
+// @Tags auth
+// @Accept  json
+// @Produce  json
+// @Param   auth_request  body  AuthRequest  true  "User login credentials"
+// @Success 200 {object} AuthResponse "Logged in successfully"
+// @Failure 400 {string} string "Invalid request body"
+// @Failure 401 {string} string "Invalid credentials"
+// @Failure 500 {string} string "Could not generate token"
+// @Router /login [post]
+func LoginHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req AuthRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		var user models.User
+		if err := db.First(&user, "email = ?", req.Email).Error; err != nil {
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			return
+		}
+
+		if !user.CheckPassword(req.Password) {
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			return
+		}
+
+		token, err := util.GenerateJWT(&user)
+		if err != nil {
+			http.Error(w, "Could not generate token", http.StatusInternalServerError)
+			return
+		}
+
+		// Não retornar a senha e inicializar Projects como array vazio
+		user.Password = ""
+		if user.Projects == nil {
+			user.Projects = make([]models.Project, 0)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(AuthResponse{
+			Message:     "Logged in successfully",
+			Token:       token,
+			User:        &user,
+			ForgeAPIKey: user.ForgeAPIKey,
+		})
+	}
+}

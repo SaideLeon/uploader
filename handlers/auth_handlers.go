@@ -62,8 +62,11 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		// Não retornar a senha
+		// Não retornar a senha e inicializar Projects como array vazio
 		user.Password = ""
+		if user.Projects == nil {
+			user.Projects = make([]models.Project, 0)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -117,8 +120,11 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		// Não retornar a senha
+		// Não retornar a senha e inicializar Projects como array vazio
 		user.Password = ""
+		if user.Projects == nil {
+			user.Projects = make([]models.Project, 0)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(AuthResponse{
