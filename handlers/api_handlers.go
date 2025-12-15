@@ -391,7 +391,7 @@ func DeleteHandler(db *gorm.DB) http.HandlerFunc {
 		}
 
 		var project models.Project
-		if err := db.First(&project, "name = ? AND user_id = ?", user.ID, user.ID).Error; err != nil {
+		if err := db.First(&project, "name = ? AND user_id = ?", projectName, user.ID).Error; err != nil {
 			http.Error(w, "Project not found", http.StatusNotFound)
 			return
 		}
@@ -517,5 +517,34 @@ func DeleteProjectHandler(db *gorm.DB) http.HandlerFunc {
 			"message": "Project deleted successfully",
 			"project": projectName,
 		})
+	}
+}
+
+// UserStatusHandler godoc
+// @Summary Get user status
+// @Description Retrieves the current user's information, including plan and storage usage.
+// @Tags api
+// @Produce  json
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} models.User "User status"
+// @Failure 500 {string} string "Could not retrieve user details"
+// @Router /api/user/status [get]
+func UserStatusHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userFromCtx, ok := r.Context().Value(middleware.UserContextKey).(*models.User)
+		if !ok {
+			http.Error(w, "Could not retrieve user from context", http.StatusInternalServerError)
+			return
+		}
+
+		var user models.User
+		if err := db.Preload("Plan").First(&user, userFromCtx.ID).Error; err != nil {
+			http.Error(w, "Could not retrieve user details", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(user)
 	}
 }

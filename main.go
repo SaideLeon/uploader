@@ -77,6 +77,7 @@ func main() {
 	api.HandleFunc("/delete", handlers.DeleteHandler(DB))
 	api.HandleFunc("/project/delete", handlers.DeleteProjectHandler(DB))
 	api.HandleFunc("/user/rotate-api-key", handlers.RotateAPIKeyHandler(DB))
+	api.HandleFunc("/user/status", handlers.UserStatusHandler(DB))
 
 	// Aplica middleware de autenticação à API
 	protectedAPI := middleware.AuthMiddleware(DB, api)
