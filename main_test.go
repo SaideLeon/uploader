@@ -25,7 +25,6 @@ func TestRegisterHandler(t *testing.T) {
 		"name":            "Test User",
 		"email":           "testuser@example.com",
 		"password":        "Password@123",
-		"whatsapp_number": "+1234567890",
 	}
 	jsonBody, _ := json.Marshal(userData)
 
@@ -62,7 +61,6 @@ func TestLoginHandler(t *testing.T) {
 		"name":            "Test User",
 		"email":           "testuser@example.com",
 		"password":        "Password@123",
-		"whatsapp_number": "+1234567890",
 	}
 	jsonRegisterBody, _ := json.Marshal(registerData)
 	registerReq, _ := http.NewRequest("POST", "/register", bytes.NewBuffer(jsonRegisterBody))
@@ -85,20 +83,4 @@ func TestLoginHandler(t *testing.T) {
 	json.Unmarshal(loginRREmail.Body.Bytes(), &responseBodyEmail)
 	assert.Equal(t, "Logged in successfully", responseBodyEmail["message"])
 	assert.NotNil(t, responseBodyEmail["token"])
-
-	// Testar login com WhatsApp
-	loginDataWhatsapp := map[string]string{
-		"whatsapp_number": "+1234567890",
-		"password":        "Password@123",
-	}
-	jsonLoginBodyWhatsapp, _ := json.Marshal(loginDataWhatsapp)
-	loginReqWhatsapp, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(jsonLoginBodyWhatsapp))
-	loginRRWhatsapp := httptest.NewRecorder()
-	handlers.LoginHandler(db)(loginRRWhatsapp, loginReqWhatsapp)
-
-	assert.Equal(t, http.StatusOK, loginRRWhatsapp.Code, "O código de status esperado para login com whatsapp era 200")
-	var responseBodyWhatsapp map[string]interface{}
-	json.Unmarshal(loginRRWhatsapp.Body.Bytes(), &responseBodyWhatsapp)
-	assert.Equal(t, "Logged in successfully", responseBodyWhatsapp["message"])
-	assert.NotNil(t, responseBodyWhatsapp["token"])
 }

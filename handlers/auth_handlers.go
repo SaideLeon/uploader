@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/mail"
-	"regexp"
 	"unicode"
 
 	"gorm.io/gorm"
@@ -14,10 +13,9 @@ import (
 )
 
 type AuthRequest struct {
-	Name           string `json:"name,omitempty"`
-	WhatsappNumber string `json:"whatsapp_number,omitempty"`
-	Email          string `json:"email,omitempty"`
-	Password       string `json:"password"`
+	Name     string `json:"name,omitempty"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 type AuthResponse struct {
 	Message     string       `json:"message"`
@@ -35,13 +33,6 @@ func isValidName(name string) bool {
 func isValidEmail(email string) bool {
 	_, err := mail.ParseAddress(email)
 	return err == nil
-}
-
-// isValidWhatsapp checks if the WhatsApp number is in a valid international format.
-func isValidWhatsapp(whatsapp string) bool {
-	// Regex for international phone numbers, e.g., +1234567890
-	re := regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
-	return re.MatchString(whatsapp)
 }
 
 // isValidPassword checks password complexity.
@@ -112,10 +103,6 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 			http.Error(w, "Invalid email format.", http.StatusBadRequest)
 			return
 		}
-		if !isValidWhatsapp(req.WhatsappNumber) {
-			http.Error(w, "Invalid WhatsApp number. Must be in international format (e.g., +1234567890).", http.StatusBadRequest)
-			return
-		}
 		if valid, message := isValidPassword(req.Password); !valid {
 			http.Error(w, message, http.StatusBadRequest)
 			return
@@ -129,11 +116,10 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 		}
 
 		user := &models.User{
-			Name:           req.Name,
-			WhatsappNumber: req.WhatsappNumber,
-			Email:          req.Email,
-			Password:       req.Password,
-			PlanID:         freePlan.ID,
+			Name:     req.Name,
+			Email:    req.Email,
+			Password: req.Password,
+			PlanID:   freePlan.ID,
 		}
 
 		// O hook BeforeCreate irá gerar a API key e hashear a senha
@@ -163,13 +149,13 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 
 // LoginHandler godoc
 // @Summary Log in a user
-// @Description Authenticates a user using either email or WhatsApp number and password, then returns a JWT token.
+// @Description Authenticates a user using email and password, then returns a JWT token.
 // @Tags auth
 // @Accept  json
 // @Produce  json
-// @Param   auth_request  body  AuthRequest  true  "User login credentials (either email or whatsapp_number is required)"
+// @Param   auth_request  body  AuthRequest  true  "User login credentials"
 // @Success 200 {object} AuthResponse "Logged in successfully"
-// @Failure 400 {string} string "Invalid request body or missing credentials"
+// @Failure 400 {string} string "Invalid request body"
 // @Failure 401 {string} string "Invalid credentials"
 // @Failure 500 {string} string "Could not generate token"
 // @Router /login [post]
@@ -186,23 +172,14 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		// Verifica se pelo menos um dos campos (email ou whatsapp) foi fornecido
-		if req.Email == "" && req.WhatsappNumber == "" {
-			http.Error(w, "Email or WhatsApp number is required", http.StatusBadRequest)
+		// Verifica se o email foi fornecido
+		if req.Email == "" {
+			http.Error(w, "Email is required", http.StatusBadRequest)
 			return
 		}
 
 		var user models.User
-		var err error
-
-		// Tenta encontrar o usuário pelo email ou pelo número de WhatsApp
-		if req.Email != "" {
-			err = db.Preload("Plan").Preload("Projects").First(&user, "email = ?", req.Email).Error
-		} else {
-			err = db.Preload("Plan").Preload("Projects").First(&user, "whatsapp_number = ?", req.WhatsappNumber).Error
-		}
-
-		if err != nil {
+		if err := db.Preload("Plan").Preload("Projects").First(&user, "email = ?", req.Email).Error; err != nil {
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}

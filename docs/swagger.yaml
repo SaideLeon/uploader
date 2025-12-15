@@ -8,8 +8,6 @@ definitions:
         type: string
       password:
         type: string
-      whatsapp_number:
-        type: string
     type: object
   handlers.AuthResponse:
     properties:
@@ -392,10 +390,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticates a user using either email or WhatsApp number and
-        password, then returns a JWT token.
+      description: Authenticates a user using email and password, then returns a JWT token.
       parameters:
-      - description: User login credentials (either email or whatsapp_number is required)
+      - description: User login credentials
         in: body
         name: auth_request
         required: true
