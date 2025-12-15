@@ -8,14 +8,32 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	FreePlanStorageLimit = 1 * 1024 * 1024 * 1024 // 1 GB
+)
+
+// Plan representa um plano de assinatura
+type Plan struct {
+	ID           uuid.UUID `gorm:"type:uuid;primary_key;"`
+	Name         string    `gorm:"uniqueIndex;not null"`
+	Price        float64   `gorm:"not null;default:0"`
+	StorageLimit int64     `gorm:"not null"` // Em bytes
+	CreatedAt    time.Time `gorm:"autoCreateTime"`
+}
+
 // User representa um usuário no sistema
 type User struct {
-	ID          uuid.UUID `gorm:"type:uuid;primary_key;"`
-	Email       string    `gorm:"uniqueIndex;not null"`
-	Password    string    `gorm:"not null"`
-	ForgeAPIKey string    `gorm:"uniqueIndex;not null"`
-	CreatedAt   time.Time `gorm:"autoCreateTime"`
-	Projects    []Project `gorm:"foreignKey:UserID"`
+	ID             uuid.UUID `gorm:"type:uuid;primary_key;"`
+	Name           string    `gorm:"not null"`
+	WhatsappNumber string    `gorm:"not null"`
+	Email          string    `gorm:"uniqueIndex;not null"`
+	Password       string    `gorm:"not null"`
+	ForgeAPIKey    string    `gorm:"uniqueIndex;not null"`
+	StorageUsage   int64     `gorm:"default:0"`
+	PlanID         uuid.UUID `gorm:"type:uuid"`
+	Plan           Plan      `gorm:"foreignKey:PlanID"`
+	CreatedAt      time.Time `gorm:"autoCreateTime"`
+	Projects       []Project `gorm:"foreignKey:UserID"`
 }
 
 // Project representa um projeto de um usuário
@@ -38,6 +56,12 @@ type File struct {
 	UploadedAt  time.Time `gorm:"autoCreateTime"`
 }
 
+// BeforeCreate é um hook do GORM para gerar um UUID para o plano
+func (p *Plan) BeforeCreate(tx *gorm.DB) (err error) {
+	p.ID = uuid.New()
+	return
+}
+
 // BeforeCreate é um hook do GORM para gerar a API key e hashear a senha antes de criar um usuário
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	u.ID = uuid.New()
@@ -45,7 +69,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	u.ForgeAPIKey = uuid.New().String()
 
 	// Hashear a senha
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), 10)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), 12)
 	if err != nil {
 		return err
 	}

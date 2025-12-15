@@ -3,15 +3,21 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"net/mail"
+	"regexp"
+	"unicode"
 
 	"gorm.io/gorm"
+
 	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/models"
 	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/util"
 )
 
 type AuthRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Name           string `json:"name"`
+	WhatsappNumber string `json:"whatsapp_number"`
+	Email          string `json:"email"`
+	Password       string `json:"password"`
 }
 
 type AuthResponse struct {
@@ -19,6 +25,59 @@ type AuthResponse struct {
 	Token       string       `json:"token,omitempty"`
 	User        *models.User `json:"user,omitempty"`
 	ForgeAPIKey string       `json:"forge_api_key,omitempty"`
+}
+
+// isValidName checks if the name has between 3 and 100 characters.
+func isValidName(name string) bool {
+	return len(name) >= 3 && len(name) <= 100
+}
+
+// isValidEmail checks if the email follows RFC 5322 standard.
+func isValidEmail(email string) bool {
+	_, err := mail.ParseAddress(email)
+	return err == nil
+}
+
+// isValidWhatsapp checks if the WhatsApp number is in a valid international format.
+func isValidWhatsapp(whatsapp string) bool {
+	// Regex for international phone numbers, e.g., +1234567890
+	re := regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
+	return re.MatchString(whatsapp)
+}
+
+// isValidPassword checks password complexity.
+func isValidPassword(password string) (bool, string) {
+	if len(password) < 8 {
+		return false, "Password must be at least 8 characters long."
+	}
+	var (
+		hasUpper, hasLower, hasNumber, hasSpecial bool
+	)
+	for _, char := range password {
+		switch {
+		case unicode.IsUpper(char):
+			hasUpper = true
+		case unicode.IsLower(char):
+			hasLower = true
+		case unicode.IsNumber(char):
+			hasNumber = true
+		case unicode.IsPunct(char) || unicode.IsSymbol(char):
+			hasSpecial = true
+		}
+	}
+	if !hasUpper {
+		return false, "Password must contain at least one uppercase letter."
+	}
+	if !hasLower {
+		return false, "Password must contain at least one lowercase letter."
+	}
+	if !hasNumber {
+		return false, "Password must contain at least one number."
+	}
+	if !hasSpecial {
+		return false, "Password must contain at least one special character."
+	}
+	return true, ""
 }
 
 // RegisterHandler godoc
@@ -30,7 +89,7 @@ type AuthResponse struct {
 // @Param   auth_request  body  AuthRequest  true  "User registration details"
 // @Success 201 {object} AuthResponse "User created successfully"
 // @Failure 400 {string} string "Invalid request body or missing fields"
-// @Failure 500 {string} string "Could not create user"
+// @Failure 500 {string} string "Could not create user or find default plan"
 // @Router /register [post]
 func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -45,15 +104,37 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		// Validação básica
-		if req.Email == "" || req.Password == "" {
-			http.Error(w, "Email and password are required", http.StatusBadRequest)
+		// Validações
+		if !isValidName(req.Name) {
+			http.Error(w, "Name must be between 3 and 100 characters.", http.StatusBadRequest)
+			return
+		}
+		if !isValidEmail(req.Email) {
+			http.Error(w, "Invalid email format.", http.StatusBadRequest)
+			return
+		}
+		if !isValidWhatsapp(req.WhatsappNumber) {
+			http.Error(w, "Invalid WhatsApp number. Must be in international format (e.g., +1234567890).", http.StatusBadRequest)
+			return
+		}
+		if valid, message := isValidPassword(req.Password); !valid {
+			http.Error(w, message, http.StatusBadRequest)
+			return
+		}
+
+		// Encontrar o plano "Free"
+		var freePlan models.Plan
+		if err := db.Where("name = ?", "Free").First(&freePlan).Error; err != nil {
+			http.Error(w, "Could not find default plan", http.StatusInternalServerError)
 			return
 		}
 
 		user := &models.User{
-			Email:    req.Email,
-			Password: req.Password,
+			Name:           req.Name,
+			WhatsappNumber: req.WhatsappNumber,
+			Email:          req.Email,
+			Password:       req.Password,
+			PlanID:         freePlan.ID,
 		}
 
 		// O hook BeforeCreate irá gerar a API key e hashear a senha
@@ -61,6 +142,9 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 			http.Error(w, "Could not create user: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// Carregar o usuário com o plano para a resposta
+		db.Preload("Plan").First(&user, "id = ?", user.ID)
 
 		// Não retornar a senha e inicializar Projects como array vazio
 		user.Password = ""
@@ -104,7 +188,7 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 		}
 
 		var user models.User
-		if err := db.First(&user, "email = ?", req.Email).Error; err != nil {
+		if err := db.Preload("Plan").Preload("Projects").First(&user, "email = ?", req.Email).Error; err != nil {
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}

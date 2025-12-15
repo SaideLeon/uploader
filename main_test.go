@@ -7,12 +7,16 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/config"
 	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/database"
 	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/handlers"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRegisterHandler(t *testing.T) {
+	// Carrega a configuração da aplicação
+	config.LoadConfig()
+
 	// Configuração do banco de dados de teste
 	db, err := database.ConnectTest()
 	if err != nil {
@@ -22,6 +26,7 @@ func TestRegisterHandler(t *testing.T) {
 
 	// Dados do usuário para o teste
 	userData := map[string]string{
+		"name":     "Test User",
 		"email":    "testuser@example.com",
 		"password": "testpassword",
 	}
@@ -54,6 +59,9 @@ func TestRegisterHandler(t *testing.T) {
 }
 
 func TestLoginHandler(t *testing.T) {
+	// Carrega a configuração da aplicação
+	config.LoadConfig()
+
 	// Configuração do banco de dados de teste
 	db, err := database.ConnectTest()
 	if err != nil {
@@ -63,6 +71,7 @@ func TestLoginHandler(t *testing.T) {
 
 	// Cria um usuário para o teste usando o RegisterHandler
 	userData := map[string]string{
+		"name":     "Test User",
 		"email":    "testuser@example.com",
 		"password": "testpassword",
 	}

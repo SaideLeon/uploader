@@ -23,15 +23,44 @@ func Connect() (*gorm.DB, error) {
 	log.Println("Executando migrações do banco de dados...")
 	// Em desenvolvimento, podemos dropar as tabelas para garantir a atualização do esquema.
 	// CUIDADO: Isso apagará todos os dados. Não use em produção.
-	db.Migrator().DropTable(&models.User{}, &models.Project{}, &models.File{})
-	err = db.AutoMigrate(&models.User{}, &models.Project{}, &models.File{})
+	db.Migrator().DropTable(&models.User{}, &models.Project{}, &models.File{}, &models.Plan{})
+	err = db.AutoMigrate(&models.User{}, &models.Project{}, &models.File{}, &models.Plan{})
 	if err != nil {
 		log.Println("Erro ao executar migrações:", err)
 		return nil, err
 	}
 
+	// Cria o plano padrão se não existir
+	CreateDefaultPlan(db)
+
 	return db, nil
 }
+
+// CreateDefaultPlan cria o plano gratuito se ele não existir
+func CreateDefaultPlan(db *gorm.DB) {
+	var freePlan models.Plan
+	// Verifica se o plano "Free" já existe
+	if err := db.Where("name = ?", "Free").First(&freePlan).Error; err == gorm.ErrRecordNotFound {
+		// Plano não encontrado, então cria um novo
+		log.Println("Criando plano 'Free' padrão...")
+		newFreePlan := models.Plan{
+			Name:         "Free",
+			Price:        0,
+			StorageLimit: models.FreePlanStorageLimit, // 1 GB
+		}
+		if err := db.Create(&newFreePlan).Error; err != nil {
+			log.Fatalf("Falha ao criar o plano 'Free': %v", err)
+		}
+		log.Println("Plano 'Free' criado com sucesso.")
+	} else if err != nil {
+		// Outro erro ocorreu durante a busca
+		log.Fatalf("Erro ao verificar o plano 'Free': %v", err)
+	} else {
+		// Plano já existe
+		log.Println("Plano 'Free' já existe.")
+	}
+}
+
 
 // ConnectTest abre uma conexão com um banco de dados de teste
 func ConnectTest() (*gorm.DB, error) {
@@ -42,10 +71,19 @@ func ConnectTest() (*gorm.DB, error) {
 		return nil, err
 	}
 
-	err = db.AutoMigrate(&models.User{}, &models.Project{}, &models.File{})
+	// Limpa o banco de dados de teste antes de executar as migrações
+	err = db.Migrator().DropTable(&models.User{}, &models.Project{}, &models.File{}, &models.Plan{})
 	if err != nil {
 		return nil, err
 	}
+
+	err = db.AutoMigrate(&models.User{}, &models.Project{}, &models.File{}, &models.Plan{})
+	if err != nil {
+		return nil, err
+	}
+
+	// Cria o plano padrão para os testes
+	CreateDefaultPlan(db)
 
 	return db, nil
 }

@@ -1,0 +1,351 @@
+ : API de Upload Segura e Escalável
+
+## Contexto
+Evoluir o backend do serviço de upload desenvolvido em Go, transformando-o em uma API profissional, segura e preparada para monetização, com proteção robusta contra ameaças cibernéticas.
+
+---
+
+## 📋 PARTE 1: Sistema de Usuários e Autenticação
+
+### 1.1 Registro de Usuários Aprimorado
+**Campos obrigatórios:**
+- **Nome** (organizacional ou individual) - string, 3-100 caracteres
+- **Email** - validação RFC 5322, único no sistema
+- **WhatsApp** - formato internacional (+código país + número), validado
+- **Senha** - mínimo 8 caracteres, com regras de complexidade:
+  - Pelo menos 1 letra maiúscula
+  - Pelo menos 1 letra minúscula
+  - Pelo menos 1 número
+  - Pelo menos 1 caractere especial
+  - Hash bcrypt com custo 12
+
+**Validações de segurança no registro:**
+```
+✓ Sanitização de todos os inputs (prevenir XSS)
+✓ Validação de email com verificação de domínio real
+✓ Rate limit: máximo 5 tentativas de registro por IP/hora  
+✓ Lista negra de emails descartáveis (temp-mail, guerrillamail, etc)
+✓ Verificação de força de senha em tempo real 
+```
+
+### 1.2 Login e Gestão de Sessões
+**Fluxo de autenticação:**
+- Login com **email + senha**
+- Retorna **JWT** (24h validade) + **Refresh Token** (7 dias)
+- Cada usuário possui **FORGE_API_KEY** única e permanente
+- Suporte a autenticação via JWT ou API Key
+
+**Medidas de segurança:**
+```
+✓ Rate limit: 5 tentativas de login por email/15min
+✓ Bloqueio temporário após 10 falhas (30 minutos)
+✓ Bloqueio permanente após 20 falhas (requer recuperação manual)
+✓ Logging de tentativas de login suspeitas
+✓ Alertas automáticos de login em novo dispositivo/localização 
+✓ Invalidação de tokens comprometidos (blacklist de JWTs)
+✓ Rotação automática de Refresh Tokens
+```
+
+---
+
+## 🔒 PARTE 2: Proteção Contra Ataques Cibernéticos
+
+### 2.1 Proteção SQL Injection
+```
+✓ GORM com prepared statements (já implementado)
+✓ Validação estrita de UUIDs antes de queries
+✓ Sanitização de todos os parâmetros de busca
+✓ Desabilitar raw queries exceto em casos auditados
+✓ Logging de queries suspeitas (UNION, DROP, --, etc)
+✓ Whitelist de caracteres permitidos em nomes de projetos
+✓ Escape de caracteres especiais em paths
+```
+
+### 2.2 Proteção XSS e File Upload Attacks
+```
+✓ Validação de MIME type real (magic bytes), não apenas headers
+✓ Renomear todos os arquivos com UUID + timestamp
+✓ Remover metadados EXIF de imagens (prevenir vazamento de dados)
+✓ Scan antivírus em uploads (ClamAV ou similar)
+✓ Whitelist de extensões: .jpg, .jpeg, .png, .pdf, .gif, .webp
+✓ Blacklist explícita: .exe, .sh, .bat, .html, .js, .php
+✓ Content-Security-Policy headers nos responses
+✓ Sanitização de nomes de arquivos (remover ../, /, \, etc)
+✓ Armazenamento fora do webroot
+✓ Servir arquivos com X-Content-Type-Options: nosniff
+```
+
+### 2.3 Rate Limiting Avançado
+```
+✓ Por IP: 100 requests/minuto (geral)
+✓ Por usuário: 1000 requests/hora (autenticado)
+✓ Uploads: 50/dia no plano gratuito, 500/dia no premium
+✓ Tamanho de arquivo: 10MB/upload (gratuito), 100MB (premium)
+✓ Bandwidth total: 5GB/mês (gratuito), 100GB (premium)
+✓ Implementar com redis ou in-memory cache
+✓ Headers de resposta: X-RateLimit-Limit, X-RateLimit-Remaining
+✓ Resposta 429 Too Many Requests com Retry-After header
+```
+
+### 2.4 Proteção DDoS e Brute Force
+```
+✓ Implementar slowloris protection
+✓ Request timeout: 30 segundos
+✓ Limitar tamanho do body: 10MB
+✓ Validar Content-Length antes de processar
+✓ Implementar exponential backoff em falhas 
+✓ Monitoramento de anomalias (picos súbitos de tráfego)
+```
+
+### 2.5 Auditoria e Monitoramento
+```
+✓ Log estruturado (JSON) com:
+  - user_id, action, ip_address, user_agent
+  - timestamp, endpoint, method, status_code
+  - response_time, error_details
+✓ Detecção de comportamento suspeito:
+  - Múltiplos uploads de arquivos idênticos
+  - Tentativas de acesso a recursos de outros usuários
+  - Variação anormal de tamanho de uploads
+  - Requests de IPs de países bloqueados
+✓ Alertas automáticos via webhook/email
+✓ Retenção de logs: 90 dias (gratuito), 1 ano (premium)
+✓ Integração com SIEM (opcional)
+```
+
+---
+
+## 💾 PARTE 3: Sistema de Quotas e Planos
+
+### 3.1 Modelo de Dados - Planos
+```go
+type Plan struct {
+    ID                uuid.UUID `gorm:"type:uuid;primary_key"`
+    Name              string    `gorm:"not null"` // "free", "basic", "pro", "enterprise"
+    StorageQuotaBytes int64     `gorm:"not null"` // 1GB, 10GB, 100GB, ilimitado
+    MaxFileSize       int64     `gorm:"not null"` // 10MB, 100MB, 1GB
+    MaxUploadsPerDay  int       `gorm:"not null"` // 50, 500, 5000, ilimitado
+    MaxProjects       int       `gorm:"not null"` // 5, 50, 500, ilimitado
+    PriceMonthly      float64   `gorm:"not null"` // 0, 9.99, 49.99, 299.99
+    Features          JSONB     `gorm:"type:jsonb"` // features adicionais
+    CreatedAt         time.Time
+    UpdatedAt         time.Time
+}
+```
+
+### 3.2 Modelo de Dados - Assinatura do Usuário
+```go
+type UserSubscription struct {
+    ID                uuid.UUID `gorm:"type:uuid;primary_key"`
+    UserID            uuid.UUID `gorm:"type:uuid;not null;uniqueIndex"`
+    PlanID            uuid.UUID `gorm:"type:uuid;not null"`
+    StorageUsedBytes  int64     `gorm:"default:0;not null"`
+    UploadsToday      int       `gorm:"default:0;not null"`
+    LastUploadDate    time.Time
+    SubscriptionStart time.Time `gorm:"not null"`
+    SubscriptionEnd   time.Time // null = plano gratuito
+    Status            string    `gorm:"not null"` // "active", "suspended", "cancelled"
+    PaymentMethod     string    // para integração futura
+    CreatedAt         time.Time
+    UpdatedAt         time.Time
+}
+```
+
+### 3.3 Modelo de Dados - Histórico de Uso
+```go
+type UsageLog struct {
+    ID             uuid.UUID `gorm:"type:uuid;primary_key"`
+    UserID         uuid.UUID `gorm:"type:uuid;not null;index"`
+    Action         string    `gorm:"not null"` // "upload", "delete", "download"
+    ProjectName    string
+    FileName       string
+    FileSize       int64
+    StorageDelta   int64     // +bytes (upload) ou -bytes (delete)
+    IPAddress      string
+    UserAgent      string
+    Timestamp      time.Time `gorm:"not null;index"`
+}
+```
+
+### 3.4 Atualização do Modelo User
+```go
+type User struct {
+    ID                uuid.UUID         `gorm:"type:uuid;primary_key"`
+    Name              string            `gorm:"not null"` // NOVO
+    Email             string            `gorm:"uniqueIndex;not null"`
+    WhatsApp          string            `gorm:"not null"` // NOVO
+    Password          string            `gorm:"not null"`
+    ForgeAPIKey       string            `gorm:"uniqueIndex;not null"`
+    EmailVerified     bool              `gorm:"default:false"` // NOVO
+    EmailVerifyToken  string            `gorm:"index"` // NOVO
+    TwoFactorEnabled  bool              `gorm:"default:false"` // NOVO
+    TwoFactorSecret   string            // NOVO
+    AccountStatus     string            `gorm:"default:'active'"` // active/suspended/banned
+    LastLoginAt       time.Time         // NOVO
+    LastLoginIP       string            // NOVO
+    FailedLoginCount  int               `gorm:"default:0"` // NOVO
+    LockedUntil       *time.Time        // NOVO
+    CreatedAt         time.Time
+    UpdatedAt         time.Time
+    Projects          []Project         `gorm:"foreignKey:UserID"`
+    Subscription      UserSubscription  `gorm:"foreignKey:UserID"` // NOVO
+}
+```
+
+### 3.5 Implementação de Checagem de Quota
+```
+Antes de cada upload:
+✓ Verificar se storage_used + file_size <= storage_quota
+✓ Verificar se uploads_today < max_uploads_per_day
+✓ Verificar se file_size <= max_file_size do plano
+✓ Verificar se número de projetos <= max_projects
+✓ Retornar erro 402 Payment Required se excedido
+✓ Sugerir upgrade de plano na resposta
+```
+
+**Plano Gratuito Padrão:**
+```
+- Storage: 1GB
+- Max file size: 10MB
+- Uploads/dia: 50
+- Projetos: 5
+- Bandwidth: 5GB/mês
+```
+
+---
+
+## 🛡️ PARTE 4: Endpoint de Segurança Adicional
+
+### 4.1 Novos Endpoints
+```
+POST   /api/user/verify-email         - Confirmar email com token
+POST   /api/user/resend-verification  - Reenviar email de confirmação
+POST   /api/user/enable-2fa           - Ativar autenticação 2FA
+POST   /api/user/verify-2fa           - Validar código 2FA no login
+GET    /api/user/usage                - Ver uso atual de storage/quotas
+GET    /api/user/activity-log         - Ver histórico de atividades
+POST   /api/user/rotate-api-key       - Rotacionar FORGE_API_KEY (já existe)
+POST   /api/user/change-password      - Trocar senha (com senha antiga)
+POST   /api/user/reset-password       - Solicitar reset de senha
+GET    /api/plans                     - Listar planos disponíveis
+POST   /api/subscription/upgrade      - Upgrade de plano (futuro)
+```
+
+### 4.2 Headers de Segurança Obrigatórios
+```go
+w.Header().Set("X-Content-Type-Options", "nosniff")
+w.Header().Set("X-Frame-Options", "DENY")
+w.Header().Set("X-XSS-Protection", "1; mode=block")
+w.Header().Set("Strict-Transport-Security", "max-age=31536000")
+w.Header().Set("Content-Security-Policy", "default-src 'self'")
+w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+```
+
+---
+
+## 🎯 PARTE 5: Checklist de Implementação
+
+### Fase 1: Segurança Básica (Prioridade ALTA)
+```
+[ ] Validação de inputs com whitelist
+[ ] Proteção SQL injection (verificar GORM)
+[ ] Validação de MIME type real
+[ ] Rate limiting básico (100 req/min)
+[ ] Headers de segurança
+[ ] Logging estruturado
+[ ] Sanitização de nomes de arquivos
+```
+
+### Fase 2: Sistema de Usuários (Prioridade ALTA)
+```
+[ ] Atualizar modelo User (nome, whatsapp, etc)
+[ ] Criar tabela Plans
+[ ] Criar tabela UserSubscription
+[ ] Criar tabela UsageLog
+[ ] Implementar registro com novos campos
+[ ] Implementar verificação de email
+[ ] Atualizar login (manter email+senha)
+```
+
+### Fase 3: Sistema de Quotas (Prioridade ALTA)
+```
+[ ] Middleware de checagem de quota antes de uploads
+[ ] Contador de storage usado por usuário
+[ ] Limite de 1GB para plano gratuito
+[ ] Contador de uploads diários
+[ ] Endpoint GET /api/user/usage
+[ ] Erro 402 com sugestão de upgrade
+```
+
+### Fase 4: Segurança Avançada (Prioridade MÉDIA)
+```
+[ ] Implementar 2FA/TOTP
+[ ] Scan antivírus em uploads (ClamAV)
+[ ] Detecção de comportamento suspeito
+[ ] Sistema de alertas automáticos
+[ ] Bloqueio automático por tentativas
+[ ] Whitelist/blacklist de IPs
+```
+
+### Fase 5: Monetização (Prioridade BAIXA - Preparação)
+```
+[ ] Endpoint GET /api/plans
+[ ] Endpoint POST /api/subscription/upgrade (mock)
+[ ] Estrutura para webhook de pagamento
+[ ] Dashboard de administração
+[ ] Sistema de cupons/descontos
+```
+
+---
+
+## 📊 Exemplo de Resposta de Quota Excedida
+
+```json
+{
+  "error": "Storage quota exceeded",
+  "message": "You've used 1.02GB of your 1GB limit",
+  "current_usage": {
+    "storage_used": "1.02GB",
+    "storage_limit": "1GB",
+    "uploads_today": 48,
+    "uploads_limit": 50
+  },
+  "suggested_action": {
+    "upgrade_to": "Basic Plan",
+    "new_limit": "10GB",
+    "price": "$9.99/month",
+    "url": "https://uploader.../plans"
+  }
+}
+```
+
+---
+
+## 🚨 Alertas de Segurança Críticos
+
+O sistema deve alertar automaticamente quando detectar:
+```
+⚠️ Mais de 10 tentativas de login falhadas em 1 hora
+⚠️ Upload de arquivo com malware detectado
+⚠️ Tentativa de acesso a recursos de outro usuário
+⚠️ Padrão de scraping (muitos GETs sequenciais)
+⚠️ Upload de arquivo com MIME type falsificado
+⚠️ Spike de tráfego (>1000 req/min de um IP)
+⚠️ SQL injection pattern detectado
+⚠️ Path traversal attempt (../, etc)
+```
+
+---
+
+## ✅ Resultado Final Esperado
+
+Uma API de upload:
+- ✅ **Segura** contra SQL injection, XSS, DDoS, brute force
+- ✅ **Profissional** com quotas, planos e auditoria
+- ✅ **Escalável** preparada para crescimento e monetização
+- ✅ **Simples** de usar para desenvolvedores
+- ✅ **Monitorada** com logs e alertas automáticos
+- ✅ **Preparada** para integração com gateways de pagamento
+
+ 

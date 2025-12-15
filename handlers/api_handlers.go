@@ -121,15 +121,23 @@ var (
 // @Security APIKeyAuth
 // @Success 201 {object} UploadResponse "File uploaded successfully"
 // @Failure 400 {string} string "Bad Request: Error reading file or file is too large"
+// @Failure 403 {string} string "Storage limit exceeded"
 // @Failure 413 {string} string "File is too large. Max size is 10MB."
 // @Failure 415 {string} string "Invalid file type. Allowed types are: jpeg, png, pdf."
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /api/upload [post]
 func UploadHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user, ok := r.Context().Value(middleware.UserContextKey).(*models.User)
+		userFromCtx, ok := r.Context().Value(middleware.UserContextKey).(*models.User)
 		if !ok {
 			http.Error(w, "Could not retrieve user from context", http.StatusInternalServerError)
+			return
+		}
+
+		// Carrega o usuário com o plano para verificar o limite de armazenamento
+		var user models.User
+		if err := db.Preload("Plan").First(&user, userFromCtx.ID).Error; err != nil {
+			http.Error(w, "Could not retrieve user details", http.StatusInternalServerError)
 			return
 		}
 
@@ -140,15 +148,21 @@ func UploadHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		project_name := r.FormValue("project")
-		project_name = sanitizeProjectName(project_name)
-
 		file, header, err := r.FormFile("file")
 		if err != nil {
 			http.Error(w, "Error reading file: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
+
+		// Verificar limite de armazenamento
+		if user.StorageUsage+header.Size > user.Plan.StorageLimit {
+			http.Error(w, "Storage limit exceeded", http.StatusForbidden)
+			return
+		}
+
+		project_name := r.FormValue("project")
+		project_name = sanitizeProjectName(project_name)
 
 		// Valida o MIME type
 		mimeType := header.Header.Get("Content-Type")
@@ -199,6 +213,13 @@ func UploadHandler(db *gorm.DB) http.HandlerFunc {
 		if err := db.Create(&dbFile).Error; err != nil {
 			http.Error(w, "Could not save file metadata: "+err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		// Atualiza o uso de armazenamento do usuário
+		newStorageUsage := user.StorageUsage + size
+		if err := db.Model(&user).Update("storage_usage", newStorageUsage).Error; err != nil {
+			// Logar o erro, mas continuar. A funcionalidade principal (upload) foi concluída.
+			fmt.Printf("Error updating user storage usage for user %s: %v\n", user.ID, err)
 		}
 
 		publicURL := fmt.Sprintf("%s/files/user_%s/%s/%s", config.AppConfig.Domain, user.ID.String(), project.Name, safeName)
@@ -348,7 +369,19 @@ func ListHandler(db *gorm.DB) http.HandlerFunc {
 // @Router /api/delete [delete]
 func DeleteHandler(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
+		userFromCtx, ok := r.Context().Value(middleware.UserContextKey).(*models.User)
+		if !ok {
+			http.Error(w, "Could not retrieve user from context", http.StatusInternalServerError)
+			return
+		}
+
+		// Carrega o usuário completo para obter o uso de armazenamento atual
+		var user models.User
+		if err := db.First(&user, userFromCtx.ID).Error; err != nil {
+			http.Error(w, "Could not retrieve user details", http.StatusInternalServerError)
+			return
+		}
+
 		projectName := r.URL.Query().Get("project")
 		fileName := r.URL.Query().Get("file")
 
@@ -358,7 +391,7 @@ func DeleteHandler(db *gorm.DB) http.HandlerFunc {
 		}
 
 		var project models.Project
-		if err := db.First(&project, "name = ? AND user_id = ?", projectName, user.ID).Error; err != nil {
+		if err := db.First(&project, "name = ? AND user_id = ?", user.ID, user.ID).Error; err != nil {
 			http.Error(w, "Project not found", http.StatusNotFound)
 			return
 		}
@@ -379,6 +412,15 @@ func DeleteHandler(db *gorm.DB) http.HandlerFunc {
 		if err := db.Delete(&file).Error; err != nil {
 			http.Error(w, "Could not delete file metadata: "+err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		// Atualiza o uso de armazenamento do usuário
+		newStorageUsage := user.StorageUsage - file.Size
+		if newStorageUsage < 0 {
+			newStorageUsage = 0
+		}
+		if err := db.Model(&user).Update("storage_usage", newStorageUsage).Error; err != nil {
+			fmt.Printf("Error updating user storage usage for user %s: %v\n", user.ID, err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
