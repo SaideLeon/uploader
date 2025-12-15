@@ -153,7 +153,7 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 // @Tags auth
 // @Accept  json
 // @Produce  json
-// @Param   auth_request  body  AuthRequest  true  "User login credentials"
+// @Param   auth_request  body  AuthRequest  true  "User login credentials (email and password)"
 // @Success 200 {object} AuthResponse "Logged in successfully"
 // @Failure 400 {string} string "Invalid request body"
 // @Failure 401 {string} string "Invalid credentials"

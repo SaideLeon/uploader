@@ -366,7 +366,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "Authenticates a user using either email or WhatsApp number and password, then returns a JWT token.",
+                "description": "Authenticates a user using email and password, then returns a JWT token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -379,7 +379,7 @@ const docTemplate = `{
                 "summary": "Log in a user",
                 "parameters": [
                     {
-                        "description": "User login credentials (either email or whatsapp_number is required)",
+                        "description": "User login credentials (email and password)",
                         "name": "auth_request",
                         "in": "body",
                         "required": true,
@@ -396,7 +396,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request body or missing credentials",
+                        "description": "Invalid request body",
                         "schema": {
                             "type": "string"
                         }
@@ -474,9 +474,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
-                    "type": "string"
-                },
-                "whatsapp_number": {
                     "type": "string"
                 }
             }
@@ -700,9 +697,6 @@ const docTemplate = `{
                 },
                 "storageUsage": {
                     "type": "integer"
-                },
-                "whatsappNumber": {
-                    "type": "string"
                 }
             }
         }

@@ -363,7 +363,7 @@
         },
         "/login": {
             "post": {
-                "description": "Authenticates a user using either email or WhatsApp number and password, then returns a JWT token.",
+                "description": "Authenticates a user using email and password, then returns a JWT token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -376,7 +376,7 @@
                 "summary": "Log in a user",
                 "parameters": [
                     {
-                        "description": "User login credentials (either email or whatsapp_number is required)",
+                        "description": "User login credentials (email and password)",
                         "name": "auth_request",
                         "in": "body",
                         "required": true,
@@ -393,7 +393,7 @@
                         }
                     },
                     "400": {
-                        "description": "Invalid request body or missing credentials",
+                        "description": "Invalid request body",
                         "schema": {
                             "type": "string"
                         }
@@ -471,9 +471,6 @@
                     "type": "string"
                 },
                 "password": {
-                    "type": "string"
-                },
-                "whatsapp_number": {
                     "type": "string"
                 }
             }
@@ -697,9 +694,6 @@
                 },
                 "storageUsage": {
                     "type": "integer"
-                },
-                "whatsappNumber": {
-                    "type": "string"
                 }
             }
         }

@@ -153,8 +153,6 @@ definitions:
         type: array
       storageUsage:
         type: integer
-      whatsappNumber:
-        type: string
     type: object
 host: uploader.nativespeak.app
 info:
@@ -390,9 +388,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticates a user using email and password, then returns a JWT token.
+      description: Authenticates a user using email and password, then returns a JWT
+        token.
       parameters:
-      - description: User login credentials
+      - description: User login credentials (email and password)
         in: body
         name: auth_request
         required: true
@@ -406,7 +405,7 @@ paths:
           schema:
             $ref: '#/definitions/handlers.AuthResponse'
         "400":
-          description: Invalid request body or missing credentials
+          description: Invalid request body
           schema:
             type: string
         "401":
