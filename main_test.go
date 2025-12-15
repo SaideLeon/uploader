@@ -14,41 +14,32 @@ import (
 )
 
 func TestRegisterHandler(t *testing.T) {
-	// Carrega a configuração da aplicação
 	config.LoadConfig()
-
-	// Configuração do banco de dados de teste
 	db, err := database.ConnectTest()
 	if err != nil {
 		t.Fatal("Falha ao conectar ao banco de dados de teste:", err)
 	}
 	defer database.CloseTest(db)
 
-	// Dados do usuário para o teste
 	userData := map[string]string{
-		"name":     "Test User",
-		"email":    "testuser@example.com",
-		"password": "testpassword",
+		"name":            "Test User",
+		"email":           "testuser@example.com",
+		"password":        "Password@123",
+		"whatsapp_number": "+1234567890",
 	}
 	jsonBody, _ := json.Marshal(userData)
 
-	// Cria uma requisição de teste
 	req, err := http.NewRequest("POST", "/register", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Cria um ResponseRecorder para gravar a resposta
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(handlers.RegisterHandler(db))
-
-	// Executa a requisição
 	handler.ServeHTTP(rr, req)
 
-	// Verifica o código de status
 	assert.Equal(t, http.StatusCreated, rr.Code, "O código de status esperado era 201")
 
-	// Verifica o corpo da resposta
 	var responseBody map[string]interface{}
 	err = json.Unmarshal(rr.Body.Bytes(), &responseBody)
 	assert.NoError(t, err)
@@ -59,56 +50,55 @@ func TestRegisterHandler(t *testing.T) {
 }
 
 func TestLoginHandler(t *testing.T) {
-	// Carrega a configuração da aplicação
 	config.LoadConfig()
-
-	// Configuração do banco de dados de teste
 	db, err := database.ConnectTest()
 	if err != nil {
 		t.Fatal("Falha ao conectar ao banco de dados de teste:", err)
 	}
 	defer database.CloseTest(db)
 
-	// Cria um usuário para o teste usando o RegisterHandler
-	userData := map[string]string{
-		"name":     "Test User",
+	// Registrar um usuário para o teste
+	registerData := map[string]string{
+		"name":            "Test User",
+		"email":           "testuser@example.com",
+		"password":        "Password@123",
+		"whatsapp_number": "+1234567890",
+	}
+	jsonRegisterBody, _ := json.Marshal(registerData)
+	registerReq, _ := http.NewRequest("POST", "/register", bytes.NewBuffer(jsonRegisterBody))
+	registerRR := httptest.NewRecorder()
+	handlers.RegisterHandler(db)(registerRR, registerReq)
+	assert.Equal(t, http.StatusCreated, registerRR.Code)
+
+	// Testar login com email
+	loginDataEmail := map[string]string{
 		"email":    "testuser@example.com",
-		"password": "testpassword",
+		"password": "Password@123",
 	}
-	jsonBody, _ := json.Marshal(userData)
-	req, _ := http.NewRequest("POST", "/register", bytes.NewBuffer(jsonBody))
-	rr := httptest.NewRecorder()
-	registerHandler := http.HandlerFunc(handlers.RegisterHandler(db))
-	registerHandler.ServeHTTP(rr, req)
+	jsonLoginBodyEmail, _ := json.Marshal(loginDataEmail)
+	loginReqEmail, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(jsonLoginBodyEmail))
+	loginRREmail := httptest.NewRecorder()
+	handlers.LoginHandler(db)(loginRREmail, loginReqEmail)
 
-	// Dados do usuário para o teste
-	loginData := map[string]string{
-		"email":    "testuser@example.com",
-		"password": "testpassword",
+	assert.Equal(t, http.StatusOK, loginRREmail.Code, "O código de status esperado para login com email era 200")
+	var responseBodyEmail map[string]interface{}
+	json.Unmarshal(loginRREmail.Body.Bytes(), &responseBodyEmail)
+	assert.Equal(t, "Logged in successfully", responseBodyEmail["message"])
+	assert.NotNil(t, responseBodyEmail["token"])
+
+	// Testar login com WhatsApp
+	loginDataWhatsapp := map[string]string{
+		"whatsapp_number": "+1234567890",
+		"password":        "Password@123",
 	}
-	jsonLoginBody, _ := json.Marshal(loginData)
+	jsonLoginBodyWhatsapp, _ := json.Marshal(loginDataWhatsapp)
+	loginReqWhatsapp, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(jsonLoginBodyWhatsapp))
+	loginRRWhatsapp := httptest.NewRecorder()
+	handlers.LoginHandler(db)(loginRRWhatsapp, loginReqWhatsapp)
 
-	// Cria uma requisição de teste
-	loginReq, err := http.NewRequest("POST", "/login", bytes.NewBuffer(jsonLoginBody))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Cria um ResponseRecorder para gravar a resposta
-	loginRR := httptest.NewRecorder()
-	loginHandler := http.HandlerFunc(handlers.LoginHandler(db))
-
-	// Executa a requisição
-	loginHandler.ServeHTTP(loginRR, loginReq)
-
-	// Verifica o código de status
-	assert.Equal(t, http.StatusOK, loginRR.Code, "O código de status esperado era 200")
-
-	// Verifica o corpo da resposta
-	var responseBody map[string]interface{}
-	err = json.Unmarshal(loginRR.Body.Bytes(), &responseBody)
-	assert.NoError(t, err)
-
-	assert.Equal(t, "Logged in successfully", responseBody["message"])
-	assert.NotNil(t, responseBody["token"])
+	assert.Equal(t, http.StatusOK, loginRRWhatsapp.Code, "O código de status esperado para login com whatsapp era 200")
+	var responseBodyWhatsapp map[string]interface{}
+	json.Unmarshal(loginRRWhatsapp.Body.Bytes(), &responseBodyWhatsapp)
+	assert.Equal(t, "Logged in successfully", responseBodyWhatsapp["message"])
+	assert.NotNil(t, responseBodyWhatsapp["token"])
 }

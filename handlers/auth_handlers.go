@@ -14,12 +14,11 @@ import (
 )
 
 type AuthRequest struct {
-	Name           string `json:"name"`
-	WhatsappNumber string `json:"whatsapp_number"`
-	Email          string `json:"email"`
+	Name           string `json:"name,omitempty"`
+	WhatsappNumber string `json:"whatsapp_number,omitempty"`
+	Email          string `json:"email,omitempty"`
 	Password       string `json:"password"`
 }
-
 type AuthResponse struct {
 	Message     string       `json:"message"`
 	Token       string       `json:"token,omitempty"`
@@ -164,13 +163,13 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 
 // LoginHandler godoc
 // @Summary Log in a user
-// @Description Authenticates a user and returns a JWT token.
+// @Description Authenticates a user using either email or WhatsApp number and password, then returns a JWT token.
 // @Tags auth
 // @Accept  json
 // @Produce  json
-// @Param   auth_request  body  AuthRequest  true  "User login credentials"
+// @Param   auth_request  body  AuthRequest  true  "User login credentials (either email or whatsapp_number is required)"
 // @Success 200 {object} AuthResponse "Logged in successfully"
-// @Failure 400 {string} string "Invalid request body"
+// @Failure 400 {string} string "Invalid request body or missing credentials"
 // @Failure 401 {string} string "Invalid credentials"
 // @Failure 500 {string} string "Could not generate token"
 // @Router /login [post]
@@ -187,17 +186,34 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
+		// Verifica se pelo menos um dos campos (email ou whatsapp) foi fornecido
+		if req.Email == "" && req.WhatsappNumber == "" {
+			http.Error(w, "Email or WhatsApp number is required", http.StatusBadRequest)
+			return
+		}
+
 		var user models.User
-		if err := db.Preload("Plan").Preload("Projects").First(&user, "email = ?", req.Email).Error; err != nil {
+		var err error
+
+		// Tenta encontrar o usuário pelo email ou pelo número de WhatsApp
+		if req.Email != "" {
+			err = db.Preload("Plan").Preload("Projects").First(&user, "email = ?", req.Email).Error
+		} else {
+			err = db.Preload("Plan").Preload("Projects").First(&user, "whatsapp_number = ?", req.WhatsappNumber).Error
+		}
+
+		if err != nil {
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
 
+		// Verifica a senha
 		if !user.CheckPassword(req.Password) {
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
 
+		// Gera o token JWT
 		token, err := util.GenerateJWT(&user)
 		if err != nil {
 			http.Error(w, "Could not generate token", http.StatusInternalServerError)

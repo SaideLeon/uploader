@@ -24,7 +24,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		} else {
 			logLine = "user_id=anonymous"
 		}
-		
+
 		log.Printf(
 			"%s %s %s %s",
 			r.Method,

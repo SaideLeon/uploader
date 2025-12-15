@@ -61,7 +61,6 @@ func CreateDefaultPlan(db *gorm.DB) {
 	}
 }
 
-
 // ConnectTest abre uma conexão com um banco de dados de teste
 func ConnectTest() (*gorm.DB, error) {
 	// ATENÇÃO: Isso usará a mesma URL de banco de dados da aplicação.

@@ -51,7 +51,7 @@ func getDomain() string {
 			return value
 		}
 	}
-	
+
 	// Fallback final: localhost
 	port := getEnv("PORT", "8002")
 	return "http://localhost:" + port

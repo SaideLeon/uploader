@@ -26,14 +26,6 @@ const docTemplate = `{
     "paths": {
         "/api/delete": {
             "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    },
-                    {
-                        "APIKeyAuth": []
-                    }
-                ],
                 "description": "Deletes a specific file from a project.",
                 "produces": [
                     "application/json"
@@ -86,11 +78,7 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
-                }
-            }
-        },
-        "/api/list": {
-            "get": {
+                },
                 "security": [
                     {
                         "BearerAuth": []
@@ -98,7 +86,11 @@ const docTemplate = `{
                     {
                         "APIKeyAuth": []
                     }
-                ],
+                ]
+            }
+        },
+        "/api/list": {
+            "get": {
                 "description": "Retrieves a paginated list of files within a specified project for the authenticated user.",
                 "produces": [
                     "application/json"
@@ -147,11 +139,7 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
-                }
-            }
-        },
-        "/api/project/delete": {
-            "delete": {
+                },
                 "security": [
                     {
                         "BearerAuth": []
@@ -159,7 +147,11 @@ const docTemplate = `{
                     {
                         "APIKeyAuth": []
                     }
-                ],
+                ]
+            }
+        },
+        "/api/project/delete": {
+            "delete": {
                 "description": "Deletes a project that has no files. Projects with files cannot be deleted.",
                 "produces": [
                     "application/json"
@@ -205,11 +197,7 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
-                }
-            }
-        },
-        "/api/projects": {
-            "get": {
+                },
                 "security": [
                     {
                         "BearerAuth": []
@@ -217,7 +205,11 @@ const docTemplate = `{
                     {
                         "APIKeyAuth": []
                     }
-                ],
+                ]
+            }
+        },
+        "/api/projects": {
+            "get": {
                 "description": "Retrieves a paginated list of projects for the authenticated user.",
                 "produces": [
                     "application/json"
@@ -247,11 +239,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/handlers.ProjectsResponse"
                         }
                     }
-                }
-            }
-        },
-        "/api/upload": {
-            "post": {
+                },
                 "security": [
                     {
                         "BearerAuth": []
@@ -259,7 +247,11 @@ const docTemplate = `{
                     {
                         "APIKeyAuth": []
                     }
-                ],
+                ]
+            }
+        },
+        "/api/upload": {
+            "post": {
                 "description": "Uploads a file to a specified project. If the project doesn't exist, it will be created.",
                 "consumes": [
                     "multipart/form-data"
@@ -324,11 +316,7 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
-                }
-            }
-        },
-        "/api/user/rotate-api-key": {
-            "post": {
+                },
                 "security": [
                     {
                         "BearerAuth": []
@@ -336,7 +324,11 @@ const docTemplate = `{
                     {
                         "APIKeyAuth": []
                     }
-                ],
+                ]
+            }
+        },
+        "/api/user/rotate-api-key": {
+            "post": {
                 "description": "Generates a new API key for the authenticated user, invalidating the old one.",
                 "produces": [
                     "application/json"
@@ -361,12 +353,20 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "APIKeyAuth": []
+                    }
+                ]
             }
         },
         "/login": {
             "post": {
-                "description": "Authenticates a user and returns a JWT token.",
+                "description": "Authenticates a user using either email or WhatsApp number and password, then returns a JWT token.",
                 "consumes": [
                     "application/json"
                 ],
@@ -379,7 +379,7 @@ const docTemplate = `{
                 "summary": "Log in a user",
                 "parameters": [
                     {
-                        "description": "User login credentials",
+                        "description": "User login credentials (either email or whatsapp_number is required)",
                         "name": "auth_request",
                         "in": "body",
                         "required": true,
@@ -396,7 +396,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid request body",
+                        "description": "Invalid request body or missing credentials",
                         "schema": {
                             "type": "string"
                         }

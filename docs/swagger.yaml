@@ -392,9 +392,10 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticates a user and returns a JWT token.
+      description: Authenticates a user using either email or WhatsApp number and
+        password, then returns a JWT token.
       parameters:
-      - description: User login credentials
+      - description: User login credentials (either email or whatsapp_number is required)
         in: body
         name: auth_request
         required: true
@@ -408,7 +409,7 @@ paths:
           schema:
             $ref: '#/definitions/handlers.AuthResponse'
         "400":
-          description: Invalid request body
+          description: Invalid request body or missing credentials
           schema:
             type: string
         "401":

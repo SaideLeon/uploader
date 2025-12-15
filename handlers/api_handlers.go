@@ -258,7 +258,7 @@ func ProjectsHandler(db *gorm.DB) http.HandlerFunc {
 
 		// Inicializa como slice vazio em vez de nil
 		projectInfos := make([]ProjectInfo, 0)
-		
+
 		for _, p := range projects {
 			var fileCount int64
 			var totalSize int64
@@ -274,7 +274,7 @@ func ProjectsHandler(db *gorm.DB) http.HandlerFunc {
 
 		var totalProjects int64
 		db.Model(&models.Project{}).Where("user_id = ?", user.ID).Count(&totalProjects)
-		
+
 		totalPages := calculateTotalPages(totalProjects, perPage)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -326,7 +326,7 @@ func ListHandler(db *gorm.DB) http.HandlerFunc {
 		// Inicializa como slice vazio em vez de nil
 		fileInfos := make([]FileInfo, 0)
 		domain := config.AppConfig.Domain
-		
+
 		for _, f := range files {
 			fileInfos = append(fileInfos, FileInfo{
 				Name:       f.Name,
@@ -338,7 +338,7 @@ func ListHandler(db *gorm.DB) http.HandlerFunc {
 
 		var totalFiles int64
 		db.Model(&models.File{}).Where("project_id = ?", project.ID).Count(&totalFiles)
-		
+
 		totalPages := calculateTotalPages(totalFiles, perPage)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -496,7 +496,7 @@ func DeleteProjectHandler(db *gorm.DB) http.HandlerFunc {
 		// Verificar se o projeto tem arquivos
 		var fileCount int64
 		db.Model(&models.File{}).Where("project_id = ?", project.ID).Count(&fileCount)
-		
+
 		if fileCount > 0 {
 			http.Error(w, "Project has files and cannot be deleted. Delete all files first.", http.StatusBadRequest)
 			return

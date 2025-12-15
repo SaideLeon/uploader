@@ -3,10 +3,10 @@ package util
 import (
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/config"
 	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/models"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 // Claims defines the JWT claims

@@ -29,7 +29,6 @@ func AuthMiddleware(db *gorm.DB, next http.Handler) http.Handler {
 		var tokenString string
 		var user *models.User
 
-
 		// Check for Bearer token format
 		if strings.HasPrefix(authHeader, "Bearer ") {
 			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
@@ -60,7 +59,7 @@ func AuthMiddleware(db *gorm.DB, next http.Handler) http.Handler {
 				user = &u
 			}
 		}
-		
+
 		if user == nil {
 			http.Error(w, "Invalid token or API key", http.StatusUnauthorized)
 			return

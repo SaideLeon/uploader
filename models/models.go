@@ -47,13 +47,13 @@ type Project struct {
 
 // File representa um arquivo enviado para um projeto
 type File struct {
-	ID          uuid.UUID `gorm:"type:uuid;primary_key;"`
-	Name        string    `gorm:"not null"`
-	Path        string    `gorm:"not null"`
-	Size        int64     `gorm:"not null"`
-	MimeType    string    `gorm:"not null"`
-	ProjectID   uuid.UUID `gorm:"type:uuid;not null"`
-	UploadedAt  time.Time `gorm:"autoCreateTime"`
+	ID         uuid.UUID `gorm:"type:uuid;primary_key;"`
+	Name       string    `gorm:"not null"`
+	Path       string    `gorm:"not null"`
+	Size       int64     `gorm:"not null"`
+	MimeType   string    `gorm:"not null"`
+	ProjectID  uuid.UUID `gorm:"type:uuid;not null"`
+	UploadedAt time.Time `gorm:"autoCreateTime"`
 }
 
 // BeforeCreate é um hook do GORM para gerar um UUID para o plano
@@ -89,7 +89,6 @@ func (f *File) BeforeCreate(tx *gorm.DB) (err error) {
 	f.ID = uuid.New()
 	return
 }
-
 
 // CheckPassword compara a senha fornecida com o hash armazenado
 func (u *User) CheckPassword(password string) bool {
