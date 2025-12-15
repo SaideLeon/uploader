@@ -23,16 +23,17 @@ type Plan struct {
 
 // User representa um usuário no sistema
 type User struct {
-	ID           uuid.UUID `gorm:"type:uuid;primary_key;"`
-	Name         string    `gorm:"not null"`
-	Email        string    `gorm:"uniqueIndex;not null"`
-	Password     string    `gorm:"not null"`
-	ForgeAPIKey  string    `gorm:"uniqueIndex;not null"`
-	StorageUsage int64     `gorm:"default:0"`
-	PlanID       uuid.UUID `gorm:"type:uuid"`
-	Plan         Plan      `gorm:"foreignKey:PlanID"`
-	CreatedAt    time.Time `gorm:"autoCreateTime"`
-	Projects     []Project `gorm:"foreignKey:UserID"`
+	ID             uuid.UUID `gorm:"type:uuid;primary_key;"`
+	Name           string    `gorm:"not null"`
+	WhatsappNumber string    `gorm:"not null"`
+	Email          string    `gorm:"uniqueIndex;not null"`
+	Password       string    `gorm:"not null"`
+	ForgeAPIKey    string    `gorm:"uniqueIndex;not null"`
+	StorageUsage   int64     `gorm:"default:0"`
+	PlanID         uuid.UUID `gorm:"type:uuid"`
+	Plan           Plan      `gorm:"foreignKey:PlanID"`
+	CreatedAt      time.Time `gorm:"autoCreateTime"`
+	Projects       []Project `gorm:"foreignKey:UserID"`
 }
 
 // Project representa um projeto de um usuário

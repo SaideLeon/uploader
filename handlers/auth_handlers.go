@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/mail"
+	"regexp"
 	"unicode"
 
 	"gorm.io/gorm"
@@ -13,9 +14,10 @@ import (
 )
 
 type AuthRequest struct {
-	Name     string `json:"name,omitempty"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Name           string `json:"name,omitempty"`
+	WhatsappNumber string `json:"whatsapp_number,omitempty"`
+	Email          string `json:"email"`
+	Password       string `json:"password"`
 }
 
 type LoginRequest struct {
@@ -39,6 +41,13 @@ func isValidName(name string) bool {
 func isValidEmail(email string) bool {
 	_, err := mail.ParseAddress(email)
 	return err == nil
+}
+
+// isValidWhatsapp checks if the WhatsApp number is in a valid international format.
+func isValidWhatsapp(whatsapp string) bool {
+	// Regex for international phone numbers, e.g., +1234567890
+	re := regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
+	return re.MatchString(whatsapp)
 }
 
 // isValidPassword checks password complexity.
@@ -82,7 +91,7 @@ func isValidPassword(password string) (bool, string) {
 // @Tags auth
 // @Accept  json
 // @Produce  json
-// @Param   auth_request  body  AuthRequest  true  "User registration details"
+// @Param   auth_request  body  AuthRequest  true  "User registration details (name, email, password, whatsapp_number)"
 // @Success 201 {object} AuthResponse "User created successfully"
 // @Failure 400 {string} string "Invalid request body or missing fields"
 // @Failure 500 {string} string "Could not create user or find default plan"
@@ -109,6 +118,10 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 			http.Error(w, "Invalid email format.", http.StatusBadRequest)
 			return
 		}
+		if !isValidWhatsapp(req.WhatsappNumber) {
+			http.Error(w, "Invalid WhatsApp number. Must be in international format (e.g., +1234567890).", http.StatusBadRequest)
+			return
+		}
 		if valid, message := isValidPassword(req.Password); !valid {
 			http.Error(w, message, http.StatusBadRequest)
 			return
@@ -122,10 +135,11 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 		}
 
 		user := &models.User{
-			Name:     req.Name,
-			Email:    req.Email,
-			Password: req.Password,
-			PlanID:   freePlan.ID,
+			Name:           req.Name,
+			WhatsappNumber: req.WhatsappNumber,
+			Email:          req.Email,
+			Password:       req.Password,
+			PlanID:         freePlan.ID,
 		}
 
 		// O hook BeforeCreate irá gerar a API key e hashear a senha

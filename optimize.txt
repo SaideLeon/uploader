@@ -1,0 +1,68 @@
+o registro deve seguir esse esquema:
+curl -X 'POST' \
+  'https://uploader.nativespeak.app/register' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "name": "Seu Nome",
+  "email": "user@example.com",
+  "password": "yourstrongpassword",
+  "whatsapp_number": "+123456789"
+}'
+tipo de retorno:
+{
+  "message": "User created successfully",
+  "user": {
+    "ID": "b10dd751-cc5f-43c0-9a6a-9b31f0feefab",
+    "Name": "Saide Omar Saide",
+    "WhatsappNumber": "+258869041261",
+    "Email": "saideomar@gmail.com",
+    "ForgeAPIKey": "641787a8-6b18-4640-9b60-a09cc3b4f508",
+    "StorageUsage": 0,
+    "PlanID": "618f93b4-7a51-4ec9-afba-55dcaa65960c",
+    "Plan": {
+      "ID": "618f93b4-7a51-4ec9-afba-55dcaa65960c",
+      "Name": "Free",
+      "Price": 0,
+      "StorageLimit": 1073741824,
+      "CreatedAt": "2025-12-15T11:19:34.107Z"
+    },
+    "CreatedAt": "2025-12-15T11:22:25.858Z",
+    "Projects": []
+  },
+  "forge_api_key": "641787a8-6b18-4640-9b60-a09cc3b4f508"
+}
+
+e o login esse esquema:
+curl -X 'POST' \
+  'https://uploader.nativespeak.app/login' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "email": "user@example.com",
+  "password": "yourpassword"
+}'
+
+tipo de retorno:
+{
+  "message": "Logged in successfully",
+  "user": {
+    "ID": "b10dd751-cc5f-43c0-9a6a-9b31f0feefab",
+    "Name": "Saide Omar Saide",
+    "WhatsappNumber": "+258869041261",
+    "Email": "saideomar@gmail.com",
+    "ForgeAPIKey": "641787a8-6b18-4640-9b60-a09cc3b4f508",
+    "StorageUsage": 0,
+    "PlanID": "618f93b4-7a51-4ec9-afba-55dcaa65960c",
+    "Plan": {
+      "ID": "618f93b4-7a51-4ec9-afba-55dcaa65960c",
+      "Name": "Free",
+      "Price": 0,
+      "StorageLimit": 1073741824,
+      "CreatedAt": "2025-12-15T11:19:34.107Z"
+    },
+    "CreatedAt": "2025-12-15T11:22:25.858Z",
+    "Projects": []
+  },
+  "forge_api_key": "641787a8-6b18-4640-9b60-a09cc3b4f508"
+}

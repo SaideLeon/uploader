@@ -8,6 +8,8 @@ definitions:
         type: string
       password:
         type: string
+      whatsapp_number:
+        type: string
     type: object
   handlers.AuthResponse:
     properties:
@@ -160,6 +162,8 @@ definitions:
         type: array
       storageUsage:
         type: integer
+      whatsappNumber:
+        type: string
     type: object
 host: uploader.nativespeak.app
 info:
@@ -433,7 +437,7 @@ paths:
       description: Creates a new user account and returns the user info along with
         an API key.
       parameters:
-      - description: User registration details
+      - description: User registration details (name, email, password, whatsapp_number)
         in: body
         name: auth_request
         required: true

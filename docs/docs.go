@@ -431,7 +431,7 @@ const docTemplate = `{
                 "summary": "Register a new user",
                 "parameters": [
                     {
-                        "description": "User registration details",
+                        "description": "User registration details (name, email, password, whatsapp_number)",
                         "name": "auth_request",
                         "in": "body",
                         "required": true,
@@ -474,6 +474,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                },
+                "whatsapp_number": {
                     "type": "string"
                 }
             }
@@ -708,6 +711,9 @@ const docTemplate = `{
                 },
                 "storageUsage": {
                     "type": "integer"
+                },
+                "whatsappNumber": {
+                    "type": "string"
                 }
             }
         }

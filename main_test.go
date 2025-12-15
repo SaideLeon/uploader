@@ -25,6 +25,7 @@ func TestRegisterHandler(t *testing.T) {
 		"name":            "Test User",
 		"email":           "testuser@example.com",
 		"password":        "Password@123",
+		"whatsapp_number": "+1234567890",
 	}
 	jsonBody, _ := json.Marshal(userData)
 
@@ -61,6 +62,7 @@ func TestLoginHandler(t *testing.T) {
 		"name":            "Test User",
 		"email":           "testuser@example.com",
 		"password":        "Password@123",
+		"whatsapp_number": "+1234567890",
 	}
 	jsonRegisterBody, _ := json.Marshal(registerData)
 	registerReq, _ := http.NewRequest("POST", "/register", bytes.NewBuffer(jsonRegisterBody))
