@@ -48,6 +48,13 @@ definitions:
       total_pages:
         type: integer
     type: object
+  handlers.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
   handlers.ProjectInfo:
     properties:
       file_count:
@@ -396,7 +403,7 @@ paths:
         name: auth_request
         required: true
         schema:
-          $ref: '#/definitions/handlers.AuthRequest'
+          $ref: '#/definitions/handlers.LoginRequest'
       produces:
       - application/json
       responses:

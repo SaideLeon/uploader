@@ -17,6 +17,12 @@ type AuthRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type AuthResponse struct {
 	Message     string       `json:"message"`
 	Token       string       `json:"token,omitempty"`
@@ -153,7 +159,7 @@ func RegisterHandler(db *gorm.DB) http.HandlerFunc {
 // @Tags auth
 // @Accept  json
 // @Produce  json
-// @Param   auth_request  body  AuthRequest  true  "User login credentials (email and password)"
+// @Param   auth_request  body  LoginRequest  true  "User login credentials (email and password)"
 // @Success 200 {object} AuthResponse "Logged in successfully"
 // @Failure 400 {string} string "Invalid request body"
 // @Failure 401 {string} string "Invalid credentials"
@@ -166,7 +172,7 @@ func LoginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		var req AuthRequest
+		var req LoginRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
