@@ -300,6 +300,12 @@ const docTemplate = `{
                             "type": "string"
                         }
                     },
+                    "403": {
+                        "description": "Storage limit exceeded",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "413": {
                         "description": "File is too large. Max size is 10MB.",
                         "schema": {
@@ -448,7 +454,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Could not create user",
+                        "description": "Could not create user or find default plan",
                         "schema": {
                             "type": "string"
                         }
@@ -464,7 +470,13 @@ const docTemplate = `{
                 "email": {
                     "type": "string"
                 },
+                "name": {
+                    "type": "string"
+                },
                 "password": {
+                    "type": "string"
+                },
+                "whatsapp_number": {
                     "type": "string"
                 }
             }
@@ -587,7 +599,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "mimeType": {
                     "type": "string"
@@ -599,13 +611,34 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "projectID": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "size": {
                     "type": "integer"
                 },
                 "uploadedAt": {
                     "type": "string"
+                }
+            }
+        },
+        "models.Plan": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "storageLimit": {
+                    "description": "Em bytes",
+                    "type": "integer"
                 }
             }
         },
@@ -622,13 +655,13 @@ const docTemplate = `{
                     }
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
                 "userID": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -645,9 +678,18 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                },
+                "plan": {
+                    "$ref": "#/definitions/models.Plan"
+                },
+                "planID": {
                     "type": "string"
                 },
                 "projects": {
@@ -655,6 +697,12 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/models.Project"
                     }
+                },
+                "storageUsage": {
+                    "type": "integer"
+                },
+                "whatsappNumber": {
+                    "type": "string"
                 }
             }
         }
