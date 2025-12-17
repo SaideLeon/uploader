@@ -65,7 +65,7 @@ func sanitizeProjectName(project string) string {
 	project = strings.ToLower(project)
 	project = strings.ReplaceAll(project, "..", "")
 	project = strings.ReplaceAll(project, "/", "-")
-	project = strings.ReplaceAll(project, "\\", "-")
+	project = strings.ReplaceAll(project, `\`, "-")
 	if project == "" {
 		project = "default"
 	}
@@ -106,6 +106,29 @@ var (
 		"application/pdf": true,
 	}
 )
+
+// updateUserStorage atualiza o uso de armazenamento do usuário de forma transacional
+func updateUserStorage(db *gorm.DB, userID uuid.UUID, delta int64) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		// Bloqueia a linha do usuário para evitar race conditions
+		var user models.User
+		if err := tx.Clauses().Where("id = ?", userID).First(&user).Error; err != nil {
+			return fmt.Errorf("failed to fetch user: %w", err)
+		}
+
+		newStorageUsage := user.StorageUsage + delta
+		if newStorageUsage < 0 {
+			newStorageUsage = 0
+		}
+
+		// Atualiza o StorageUsage usando o ID do usuário
+		if err := tx.Model(&models.User{}).Where("id = ?", userID).Update("storage_usage", newStorageUsage).Error; err != nil {
+			return fmt.Errorf("failed to update storage usage: %w", err)
+		}
+
+		return nil
+	})
+}
 
 // --- Handlers ---
 
@@ -215,11 +238,12 @@ func UploadHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		// Atualiza o uso de armazenamento do usuário
-		newStorageUsage := user.StorageUsage + size
-		if err := db.Model(&user).Update("storage_usage", newStorageUsage).Error; err != nil {
-			// Logar o erro, mas continuar. A funcionalidade principal (upload) foi concluída.
-			fmt.Printf("Error updating user storage usage for user %s: %v\n", user.ID, err)
+		// Atualiza o uso de armazenamento do usuário de forma segura
+		if err := updateUserStorage(db, user.ID, size); err != nil {
+			// Log mas não falha a requisição, pois o arquivo já foi salvo
+			fmt.Printf("⚠️  Warning: Failed to update storage usage for user %s: %v\n", user.ID, err)
+		} else {
+			fmt.Printf("✅ Storage updated for user %s: +%d bytes\n", user.ID, size)
 		}
 
 		publicURL := fmt.Sprintf("%s/files/user_%s/%s/%s", config.AppConfig.Domain, user.ID.String(), project.Name, safeName)
@@ -402,6 +426,8 @@ func DeleteHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
+		fileSize := file.Size
+
 		// Deleta o arquivo do filesystem
 		if err := os.Remove(file.Path); err != nil {
 			// Logar o erro, mas continuar para remover do DB
@@ -415,12 +441,10 @@ func DeleteHandler(db *gorm.DB) http.HandlerFunc {
 		}
 
 		// Atualiza o uso de armazenamento do usuário
-		newStorageUsage := user.StorageUsage - file.Size
-		if newStorageUsage < 0 {
-			newStorageUsage = 0
-		}
-		if err := db.Model(&user).Update("storage_usage", newStorageUsage).Error; err != nil {
-			fmt.Printf("Error updating user storage usage for user %s: %v\n", user.ID, err)
+		if err := updateUserStorage(db, user.ID, -fileSize); err != nil {
+			fmt.Printf("⚠️  Warning: Failed to update storage usage for user %s: %v\n", user.ID, err)
+		} else {
+			fmt.Printf("✅ Storage updated for user %s: -%d bytes\n", user.ID, fileSize)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

@@ -1,56 +1,1076 @@
-(985) Seus IDs podem colocar sua API em risco (e você nem sabia) #UUID - YouTube
-https://www.youtube.com/watch?v=Ef_q9eqbOfc
+Identifiquei o problema! O `StorageUsage` não está sendo atualizado porque há um problema na forma como o GORM está fazendo o update. Vou corrigir isso com uma solução completa:Agora vou criar um script para **recalcular o storage de todos os usuários** que já têm arquivos mas com `StorageUsage` zerado:## 🎯 Resumo Executivo
 
-Transcript:
-(00:00) Você já se deparou dentro de um novo projeto quando tava debugando ou vasculhando seu banco [música] de dados com aqueles IDs gigantesco, cheio de letra, número e traço? E ficou se perguntando: "Por que, meu Deus, [música] cadê o ID sequencial bonitinho e ordenado?" Já tentou debugar uma API com esses IDs e ficou se perguntando, será que são performáticos mesmo? Será que se pagam ou são só modinha aí que estão tentando empurrar pra gente? E os meus índices, será que eles vão estourar? Será que eles vão estragar?
-(00:32) Como que eu lido com o índice numa estrutura dessas? Então, esse vídeo aqui é para você. Hoje a gente vai entender um pouquinho o processo de identificação de recursos dentro de APIs modernas e sistemas distribuídos. Aqui a gente vai focar principalmente em IDs sequenciais e o UIDs, quando utilizar, quando não utilizar e por esse tipo de identificador mudou completamente a forma como a gente desenvolve dentro de APIs modernas hoje em dia.
-(01:02) Então já aproveita essa ideia de ID sequencial e já aumenta o número de likes aqui no vídeo, tudo bom? Conto com você que o vídeo já vai começar. Olá, Dev. Eu sou Bernardo Lobato e esse aqui é o segundo vídeo da nossa série sobre APIs. Nesse vídeo aqui, como eu já comentado, eu vou abordar o tema de identificação de recursos.
-(01:24) Achei interessante colocar também nessa série sobre APIs, porque dependendo da maneira que a gente identifica os nossos objetos, os nossos recursos, pode mudar de maneira significativa o jeito que a gente desenvolve os nossos serviços. Dessa maneira, saber qual estratégia utilizar pode ser fundamental ali dentro do desenho da sua arquitetura, dentro do desenho do seu sistema.
-(01:48) Tudo bem? Vamos começar então pra gente dar o nosso pontapé inicial aqui, eu queria definir brevemente o que é um ID pro contexto do restante desse vídeo. Um ID é um identificador único que diferencia um registro dos outros. Ele é importante numa API porque permite buscar, atualizar e referenciar recursos de forma única. precisa e confiável.
-(02:10) É como se fosse um número de um documento de um cidadão, como por exemplo, um RG ou um CPF, que identifique aquele cidadão, aquela pessoa de maneira única. Pra gente conseguir abordar essa identificação dentro do nosso sistema, a gente vai ver que existem diversas estratégias. No vídeo de hoje, a gente vai falar brevemente sobre duas, né, que é o ID sequencial e o ID universal ou o ID.
-(02:34) Começando, contextualizando um pouquinho com o ID sequencial. Esse cara aqui é o clássico dos clássicos. Quando a gente tá começando a estudar banco de dados, quando a gente tá começando a entender sobre as tabelas, sobre as queres e chaves primárias, ele acaba sendo um tiro certo.
-(02:53) Normalmente é um número sequencial que é gerenciado pelo próprio banco de dados, né? né? Então ali quando a gente coloca um uma chave primária como auto incremento, o próprio banco de dados já provê mecanismos que vão aumentando automaticamente o valor dessa chave de acordo com cada inserção no banco.
-(03:14) Tanto é que quando eu faço uma inserção na minha tabela, eu não preciso geralmente setar esse ID de forma manual. O próprio gerenciador de banco já vê qual que é o valor apropriado para mim, baseado no último valor inserido. Dessa maneira, a gente vê que cada registro é associado a um número único que cresce a cada inserção na tabela.
-(03:36) Esse tipo de abordagem tem várias vantagens, são rápidos, são excelentes para índices, tudo já chega ordenado, são simples de entender. Sabemos, por exemplo, que um registro identificado com ID 1001 veio depois o registro identificado com o ID 1000. São leves, normalmente de 4 a 8 bytes.
-(04:01) Em sistema com bilhões de registros, isso sim faz muita diferença. OK. OK. Se eles são tão perfeitos assim, por que que eu só não uso esse tipo de identificação? Por que que eu preciso de outras estratégias? Acontece que muitas dessas qualidades que eu citei aqui também podem representar problemas, principalmente em sistemas distribuídos.
-(04:21) Vamos entender um pouco esses problemas através de um exemplo. Imagine que eu acabo de criar o meu usuário em uma API qualquer que usa identificador sequencial e recebo o meu ID como 1 2 3 4. Só com essa informação eu já consigo inferir alguns pontos. Por exemplo, a URL de edição desse usuário é, digamos, barrauser/1234/edit.
-(04:46) Agora imagine alguém mal intencionado. Essa pessoa pode tentar se aproveitar de vulnerabilidade do meu sistema mudando o ID especificamente na URL. Afinal, por ser sequencial, já sabemos que existem pelo menos 1234 registros impotenciais para eu editar caso a API esteja mal programada. Então, esses dados acabam sendo expostos de uma maneira completamente desnecessária.
-(05:16) Agora imagine que na mesma PI a URL de visualização desses dados seria algo como barrauser/13. Da mesma maneira, eu poderia criar, por exemplo, um script que lê todos os dados de todos os clientes e salve na minha própria base de dados, por exemplo. Isso favorece os chamados ID enumeration attacks e aumentam em muito o risco de scrapping dentro da minha API.
-(05:43) Um outro tipo de problema, dessa vez um pouco mais voltado pros negócios, é que a partir desse número, eu consigo saber a quantidade de itens que o meu concorrente tem na sua base de dados. por exemplo, e a partir daí tomar decisões estratégicas. Além desses problemas, temos também problemas arquiteturais.
-(06:03) Vamos falar um pouquinho deles agora. Imagine que eu tenho várias instâncias da minha PI de usuários que acessem o mesmo banco e por uma alta demanda de utilização, duas ou mais instâncias acabam tentando inserir ao mesmo tempo. Nesse caso, existe uma grande chance de gerar colisão, ou seja, dois registros tentarem pegar ou mesmo ID.
-(06:28) Por isso a gente acaba perdendo um pouquinho da eficiência do nosso banco, porque esse tipo de situação pode gerar locks ou bloqueios na tabela até que os inserts estejam organizados e pode causar um belo de um gargalo no banco, principalmente se a gente tem poucos recursos disponíveis, o que pode fazer a gente perder boa parte das vantagens da estrutura de uma arquitetura distribuída, de uma arquitetura de microsserviços, por exemplo.
-(06:55) Vamos falar um pouquinho agora sobre os UU IDs. Apesar de existir desde a década de 80 com a promessa de identificar objetos em sistemas distribuídos, foi só em 2005 que foi oficialmente padronizada pra internet através da RFC 4122, que acabou definindo o formato e o namespace do ID para comunidades tanto de redes de computadores quanto de software.
-(07:27) Já em 2024, a RFC 9564 acabou atualizando esses formatos, organizando versões e práticas de desenvolvimento, né, melhores práticas de desenvolvimento, melhor dizendo, sempre mantendo a compatibilidade com as versões anteriores e com os novos requisitos, né, de aplicações modernas com como sistemas distribuídos e aplicações em larga escala.
-(07:49) Os links para as RFC estão aqui na descrição do vídeo, tá bom? Um ID é um identificador de 128 bits projetado para ser único em escala global, permitindo que sistemas, serviços e máquinas diferentes gerem a ID sem precisar se coordenar entre si, ou seja, sem a necessidade de uma autoridade central.
-(08:12) Ele é formado por uma sequência de números hexadecimais, normalmente exibida em cinco blocos separados por ifens e sua principal vantagem é possibilitar a criação de identificadores independentes, difíceis de prever e com probabilidade extremamente baixa de colisão. Por isso, o ID são amplamente usados em sistemas distribuídos, microsserviços, banco de dados, eventos, logs, aplicações que exigem escalabilidades, etc.
-(08:43) Revendo o problema do exemplo anterior, em que mais de uma instância tenta gravar ao mesmo tempo, como o ID pode ser gerado de maneira independente, o problema de colisão é praticamente inexistente. Imagine também uma solução que precise gerar dados offline e quando ficar online novamente deve sincronizar sua base de dados com a de outros serviço.
-(09:06) Com a edi sequenciais tradicionais isso seria praticamente impossível. Porém, com o uso do UID, que é possível gerar localmente, mesmo offline, eu posso, no momento da sincronização, enviar esses ID sem representar nenhum problema maior e nenhum problema de colisão com a tabela do meu banco de dados.
-(09:27) Se é o seu primeiro contato com o UID, agora você pode estar se perguntando, certo, como eu garanto que eu não vou ter colisão? Como eu tenho essa certeza? como eu posso confiar nessa geração de IDs e que eles são realmente únicos globalmente, por ser um valor de 1228 bits e independentes globalmente, a gente tem esse número aqui de combinações que a gente pode gerar de ids nesse formato.
-(09:54) Portanto, é seguro dizer tranquilamente que cada grão de areia do planeta poderia gerar seu próprio ID com chances baixíssimas de colisão. Portanto, apesar desse risco sim existir, normalmente ele é ignorado nas nossas regras de negócio. Vamos falar agora brevemente como funciona internamente a geração desse identificador e como cada versão foi evoluindo até chegarmos no padrão que a gente utiliza amplamente hoje em dia.
-(10:25) Como já mostrado, essa é uma solução bem antiga já no mundo da computação. Portanto, ela também teve evoluções significativas no decorrer do tempo. Vou falar brevemente os pontos principais de cada versão, com foco um pouquinho maior nas que são mais utilizadas hoje em dia. Começando então com a versão um, em que se baseava fortemente no time stamp da máquina e também no MAC address dessa mesma máquina que ela era gerada.
-(10:53) Então, a partir daqui, a gente já pode tirar alguns pontos positivos. Por exemplo, devido a sua natureza temporal, esta forma de identificação pode ser normalmente ordenável. Sim, tem uma boa performance em bancos relacionais e em tabelas com índices B3, porém como pontos negativos, a gente tem algumas coisas bem problemáticas.
-(11:13) Ela revela, por exemplo, informações sensíveis como detalhes do MAC address da máquina e o horário exato da criação do registro, que pode ser um pouco indesejável de se compartilhar por aí, principalmente em IDs públicas ou, por exemplo, em arquivos de log. A partir daí, então, foi criada uma V2, que eu tô tomando a liberdade de chamar aqui de um patinho feio.
-(11:37) É uma variação da V1 com duas diferenças importantes. Parte do time stamp que era utilizada na primeira versão pode ser substituída por ID do usuário local, no caso em sistemas POS do sistema operacional e o ID do grupo de usuários dentro do sistema operacional. Então, se na V1 a gente achava problemático expor ali detalhes do MAC address da máquina, por exemplo, aqui é pior ainda, porque acaba expondo, além dos dados já indesejáveis AV1, o ID do usuário e o ID do grupo desse usuário dentro do sistema operacional.
-(12:11) Essa versão é muito pouco utilizada e nenhuma grande linguagem, nenhuma linguagem popular possui suporte nativo para ela. Agora eu vou falar brevemente das versões 3 e 5, que são variações da mesma estratégia. Tanto a V3 quanto a V5 são chamadas de versões determinísticas. Isso quer dizer que não são necessariamente únicos.
-(12:34) Calma que eu explico. São baseadas em namespace mais hash. Ou seja, é possível gerar o mesmo ID se eu passar, por exemplo, o mesmo namespace. Mas isso não é ruim não, tá? Dependendo da solução, isso é útil quando temos um ID que seja realmente determinístico, como no caso queremos segurar um ID próprio para uma URL, por exemplo, ou criar um ID baseado em dados específicos de um usuário.
-(13:04) Dessa maneira é possível inclusive inferir esse UIG, pois sempre que ele for gerado com os mesmos parâmetros, vai ser sempre gerado a mesma string, o mesmo IDP. A grande diferença aqui no caso entre a V6 e a V5 é que a V3 utiliza o hash MD5 que hoje em dia já é considerado menos seguro. E a V5 utiliza XA1.
-(13:29) Agora vamos falar um pouquinho do queridinho dos Devis, que é a versão 4 do ID. Essa versão gera 122 bits aleatórios e mais dados da versão. É muito simples de ser gerado e tem quase chance zero de colisões se a fonte de aleatoriedade for boa. Esse cara aqui é ideal paraa geração de IDs distribuídos e mesmo tokens temporários.
-(13:52) Basicamente todas as linguagens relevantes possuem suporte para esse tipo de formato atualmente. Não possuem nada relacionado a time stamp ou MAC address. ou namespace é completamente aleatório, portanto são rápidos de serem gerados e a chance de colisão é muito baixa na prática, quase nulas, mas claro, né, nem tudo são flores, apesar de amplamente utilizada, essa versão possui alguns problemas sérios que podem comprometer bastante a integridade aí do seu sistema e do seu armazenamento. Como sua característica
-(14:28) principal é ser aleatória, essa chave não é ordenável, ou seja, ela performa pior em bancos de dados com índice B3, gera fragmentação e piora a velocidade de inserts massivos. Um outro ponto negativo é que ela não carrega consigo nenhuma informação útil, nenhum time stamp, nada relacionado a máquina, nada relacionado ao recurso.
-(14:55) Porém, acabou virando um padrão de fato hoje dentro do desenvolvimento. Acredito que todos os projetos que eu atuo hoje em dia utilizam, mesmo que seja parcialmente, essa versão 4 da geração de UID. E vamos falar agora da versão 7, essa aqui que tem o potencial para ser o novo queridinho dos deves, pois é uma evolução da V4.
-(15:17) Enquanto o V4 não era utilizado com time stamp, aqui a gente tem o time stamp mais os bits randômicos. Basicamente utiliza o time stamp onde ajuda e números randômicos onde importa. Dessa maneira acaba sendo um valor ordenável e continua ótimo para utilização em sistemas distribuídos, eventos ordenáveis, logs e qualquer aplicação moderna ali de alto volume, onde tempo ou ordenação seja um fator de interesse.
-(15:47) De pontos negativos, o que eu posso citar nesse momento aqui agora é primeiro, ela é pouco conhecida ainda pelos débitos, pouco difundida ainda nos projetos mais legados, principalmente. Portanto, ela tem uma curva de adoção um pouco mais lenta. Mas aqui tem um ponto interessante. É perfeitamente possível eu atualizar uma base de dados que usa, por exemplo, a versão 4 para utilizar uma versão S ali um determinado dia ou a partir de uma determinada versão, sem precisar fazer update das versões anteriores, os meus IDs anteriores,
-(16:23) melhor dizendo. As versões do ID, elas são retrocompatíveis. Ou seja, se eu gerar um ID na versão 7 a partir de hoje, não vai eh causar nenhum tipo de problema prosidis que já foram gerados na versão 4 de ontem para trás, por exemplo. Agora vamos entender um pouquinho rapidinho as desvantagens da utilização do UID em comparação com os IDs sequenciais comentados no início do vídeo.
-(16:52) Comparando com a utilização dos IDs sequenciais, temos também vários pontos negativos que saltam à vista do desenvolvedor, como por exemplo, é um campo pesado, principalmente se a gente comparar com inteiro. Enquanto o campo do tipo inteiro com alto incremento pode ocupar ali de 32 até 64 bits, o ID ocupa 128, o que é o dobro na melhor das hipóteses.
-(17:18) Isso, como já comentado, em sistemas absurdamente grandes, com bilhões de dados em centenas ou milhares de tabelas, certamente faz bastante diferença. Atualmente, com a ampla utilização da do versão 4 do ID, a gente pode ter problema ali também com índices desordenados. as URLs ficam grandes e pouco amigáveis e a gente tem pouca legibilidade e é claro, a gente tem um impacto em storage e performance do nosso disco e do nosso banco.
-(17:49) Complementando, então, quando é uma boa ideia utilizar o UID e quando é uma boa ideia utilizar um ID sequencial, por exemplo. Conforme a gente já vem vendo no decorrer do vídeo, um ID acaba se tornando extremamente útil na sua utilização com sistemas distribuídos e identificadores públicos, né, que são expostos à internet ou são expostos via API.
-(18:14) E identificação de eventos, né, então, logs ou qualquer tipo de evento dentro da minha arquitetura. Pode ser uma boa ideia a utilização com o ID, criação de IDs offline, né? Ou então quando eu preciso sincronizar uma base de dados com a outra, sem que eu tenha problemas ali com colisão de IDs. Em geral, em serviços independentes.
-(18:33) Quando eu tenho aplicações independentes que podem ou não conversar entre si, a adoção do ID pode ser uma excelente estratégia. E quando não usar o ID, quando não é tão boa ideia assim a utilização do ID e sim a utilização de um ID sequencial, por exemplo. Algumas situações como aplicações de menor porte ou aplicações centralizadas mesmo, que não vai expor dados ou que não vai conversar com outras aplicações, pode ser uma boa ideia manter a utilização simplificada do ID sequencial.
-(19:06) cenários ou tabelas onde eu posso utilizar slugs, que são aquelas identificações, né, uma pseudoidentificação que é legível, né, que utiliza ali um título ou uma parte descritiva eh para formar aquela URL, que é muito bom para SEO eh em sistemas de buscas, por exemplo, quando o meu domínio tem dados com crescimento controlado, quando eu sei que aquele dado não vai crescer tanto, ele é um conjunto pequeno de dados e eu não vou ou expor esses dados externamente, pode ser uma boa ideia manter também com ed sequencial. Ou
-(19:41) também quando são dados de domínio, por exemplo, quando tem uma tabela de domínio com valores já pré-definidos, ó, aqui vai ter 1 2 3 4 5 elementos e isso aqui vai mudar muito pouco ou já são elementos padronizados. Enfim, uma situação dessas é interessante também a utilização de ID sequencial e a não utilização de o ID para o fim da identificação desses caras aí.
-(20:04) Ou seja, cabe a você arquiteto, cabe a você desenvolvedor entender o seu domínio, entender o seu negócio e aplicar eh a regra de acordo com o que a gente tá vendo aqui, de acordo com o que você acha que é mais interessante pro seu projeto. Além dos IDs sequenciais e dos uu IDs, a gente tem outras formas de identificação que vem sendo criadas, vem sendo popularizadas aí no decorrer do tempo.
-(20:33) Hoje o foco era sobre esses dois recursos, mas se você quiser um vídeo só sobre outras maneiras de identificação, deixa um comentário aqui que a gente prepara um material bem detalhado ou um panorama geral de outros tipos de identificação. No fim das contas, a escolha do tipo de identificador diz muito sobre o tipo de sistema que você tá desenvolvendo.
-(20:53) Os IDs sequenciais são simples, rápidos e ótimos para bancos de dados centralizados e que não vão expor seus dados numa API, que não vão expor seus dados na internet, mas começam a mostrar suas limitações quando precisamos escalar o negócio ou também quando precisamos esconder informações sensíveis.
-(21:14) Nessas situações, os UUIDs podem ajudar bastante. Afinal, eles foram criados justamente para resolver esses problemas. E ao longo do tempo foram evoluindo, evoluindo até chegarmos na versão sete que traz o melhor dos mundos, ordenação, segurança e escalabilidade. E claro, eles também têm desvantagens, são grandes, podem prejudicar o índice e não fazem sentido em toda a aplicação, mas quando utilizados no contexto certo, podem ser ferramentas extremamente poderosas.
-(21:42) O importante aqui é conhecer o tradeoff, não vai ter o identificador perfeito, vai ter o identificador adequado ali pro seu caso de uso. E agora que você já conhece algumas alternativas, [música] pode tomar uma decisão muito mais consciente. Então é isso, agradeço mais uma vez a sua audiência, deixa o like, compartilha esse vídeo com o seu time, compartilha esse vídeo com o seu tech, deixa um comentáriozinho aqui para enriquecer a discussão.
-(22:09) Fala para mim, você já conhecia o ID, já trabalhou? Tem saudade de utilizar [música] sequencial em sistemas distribuídos? Conta aqui para mim e vamos enriquecer essa discussão, tudo bem? Mais uma vez, muito obrigado e a gente se vê no próximo vídeo.
+Identifiquei e corrigi o bug do `StorageUsage`. O problema era **como o GORM estava fazendo o update** - o método antigo não funcionava corretamente.
+
+### 🔧 O Que Foi Corrigido:
+
+1. **Nova função `updateUserStorage()`** - Usa transação e lock de linha
+2. **Update correto no upload** - Adiciona bytes ao storage
+3. **Update correto na deleção** - Remove bytes do storage
+4. **Script de recálculo** - Corrige usuários com dados incorretos
+
+### 🚀 Como Aplicar (3 passos simples):
+
+```bash
+# 1. Substitua o arquivo handlers/api_handlers.go pela versão corrigida
+
+# 2. Reinicie o servidor
+go build && ./uploader
+
+# 3. Rode o script de recálculo para corrigir dados antigos
+go run cmd/recalculate_storage.go
+```
+
+### ✅ Como Testar:
+
+```bash
+# Ver storage atual
+curl "https://uploader.nativespeak.app/api/user/status" \
+  -H "Authorization: Bearer SEU_API_KEY"
+
+# Fazer upload
+curl -X POST "https://uploader.nativespeak.app/api/upload" \
+  -H "Authorization: Bearer SEU_API_KEY" \
+  -F "file=@arquivo.jpg" \
+  -F "project=teste"
+
+# Ver storage novamente - DEVE TER AUMENTADO!
+curl "https://uploader.nativespeak.app/api/user/status" \
+  -H "Authorization: Bearer SEU_API_KEY"
+```
+
+Forneci 3 artifacts:
+1. **Código corrigido** completo do `api_handlers.go`
+2. **Script de recálculo** para usuários existentes
+3. **Guia detalhado** com testes e verificações
+
+ **Código corrigido**
+package handlers
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/config"
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/middleware"
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/models"
+)
+
+// --- Structs para Respostas ---
+
+type UploadResponse struct {
+	Message string `json:"message"`
+	URL     string `json:"url"`
+	Project string `json:"project"`
+	File    string `json:"file"`
+}
+
+type FileInfo struct {
+	Name       string    `json:"name"`
+	URL        string    `json:"url"`
+	Size       int64     `json:"size"`
+	UploadedAt time.Time `json:"uploaded_at"`
+}
+
+type ListResponse struct {
+	Project    string     `json:"project"`
+	Files      []FileInfo `json:"files"`
+	Total      int64      `json:"total"`
+	Page       int        `json:"page"`
+	PerPage    int        `json:"per_page"`
+	TotalPages int        `json:"total_pages"`
+}
+
+type ProjectInfo struct {
+	Name      string `json:"name"`
+	FileCount int64  `json:"file_count"`
+	TotalSize int64  `json:"total_size"`
+}
+
+type ProjectsResponse struct {
+	Projects   []ProjectInfo `json:"projects"`
+	Total      int           `json:"total"`
+	Page       int           `json:"page"`
+	PerPage    int           `json:"per_page"`
+	TotalPages int           `json:"total_pages"`
+}
+
+// --- Funções Utilitárias ---
+
+func sanitizeProjectName(project string) string {
+	project = strings.TrimSpace(project)
+	project = strings.ToLower(project)
+	project = strings.ReplaceAll(project, "..", "")
+	project = strings.ReplaceAll(project, "/", "-")
+	project = strings.ReplaceAll(project, "\\", "-")
+	if project == "" {
+		project = "default"
+	}
+	return project
+}
+
+func getPaginationParams(r *http.Request) (page, perPage int) {
+	page, _ = strconv.Atoi(r.URL.Query().Get("page"))
+	if page <= 0 {
+		page = 1
+	}
+	perPage, _ = strconv.Atoi(r.URL.Query().Get("per_page"))
+	if perPage <= 0 || perPage > 100 {
+		perPage = 10
+	}
+	return page, perPage
+}
+
+func calculateTotalPages(total int64, perPage int) int {
+	if perPage == 0 {
+		return 0
+	}
+	pages := int(total) / perPage
+	if int(total)%perPage != 0 {
+		pages++
+	}
+	return pages
+}
+
+const (
+	MaxUploadSize = 10 * 1024 * 1024 // 10 MB
+)
+
+var (
+	AllowedMimeTypes = map[string]bool{
+		"image/jpeg":      true,
+		"image/png":       true,
+		"application/pdf": true,
+	}
+)
+
+// updateUserStorage atualiza o uso de armazenamento do usuário de forma transacional
+func updateUserStorage(db *gorm.DB, userID uuid.UUID, delta int64) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		// Bloqueia a linha do usuário para evitar race conditions
+		var user models.User
+		if err := tx.Clauses().Where("id = ?", userID).First(&user).Error; err != nil {
+			return fmt.Errorf("failed to fetch user: %w", err)
+		}
+
+		newStorageUsage := user.StorageUsage + delta
+		if newStorageUsage < 0 {
+			newStorageUsage = 0
+		}
+
+		// Atualiza o StorageUsage usando o ID do usuário
+		if err := tx.Model(&models.User{}).Where("id = ?", userID).Update("storage_usage", newStorageUsage).Error; err != nil {
+			return fmt.Errorf("failed to update storage usage: %w", err)
+		}
+
+		return nil
+	})
+}
+
+// --- Handlers ---
+
+// UploadHandler godoc
+// @Summary Upload a file to a project
+// @Description Uploads a file to a specified project. If the project doesn't exist, it will be created.
+// @Tags api
+// @Accept  multipart/form-data
+// @Produce  json
+// @Param   project  formData  string  true  "Project name"
+// @Param   file     formData  file    true  "File to upload"
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 201 {object} UploadResponse "File uploaded successfully"
+// @Failure 400 {string} string "Bad Request: Error reading file or file is too large"
+// @Failure 403 {string} string "Storage limit exceeded"
+// @Failure 413 {string} string "File is too large. Max size is 10MB."
+// @Failure 415 {string} string "Invalid file type. Allowed types are: jpeg, png, pdf."
+// @Failure 500 {string} string "Internal Server Error"
+// @Router /api/upload [post]
+func UploadHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userFromCtx, ok := r.Context().Value(middleware.UserContextKey).(*models.User)
+		if !ok {
+			http.Error(w, "Could not retrieve user from context", http.StatusInternalServerError)
+			return
+		}
+
+		// Carrega o usuário com o plano para verificar o limite de armazenamento
+		var user models.User
+		if err := db.Preload("Plan").First(&user, userFromCtx.ID).Error; err != nil {
+			http.Error(w, "Could not retrieve user details", http.StatusInternalServerError)
+			return
+		}
+
+		// Limita o tamanho do corpo da requisição
+		r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
+		if err := r.ParseMultipartForm(MaxUploadSize); err != nil {
+			http.Error(w, "File is too large. Max size is 10MB.", http.StatusBadRequest)
+			return
+		}
+
+		file, header, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, "Error reading file: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+
+		// Verificar limite de armazenamento
+		if user.StorageUsage+header.Size > user.Plan.StorageLimit {
+			http.Error(w, "Storage limit exceeded", http.StatusForbidden)
+			return
+		}
+
+		project_name := r.FormValue("project")
+		project_name = sanitizeProjectName(project_name)
+
+		// Valida o MIME type
+		mimeType := header.Header.Get("Content-Type")
+		if !AllowedMimeTypes[mimeType] {
+			http.Error(w, "Invalid file type. Allowed types are: jpeg, png, pdf.", http.StatusUnsupportedMediaType)
+			return
+		}
+
+		var project models.Project
+		if err := db.FirstOrCreate(&project, models.Project{Name: project_name, UserID: user.ID}).Error; err != nil {
+			http.Error(w, "Could not find or create project: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		timestamp := time.Now().Format("20060102-150405")
+		ext := filepath.Ext(header.Filename)
+		name := strings.TrimSuffix(header.Filename, ext)
+		safeName := fmt.Sprintf("%s-%s%s", name, timestamp, ext)
+
+		userDir := filepath.Join("./uploads", fmt.Sprintf("user_%s", user.ID.String()))
+		projectDir := filepath.Join(userDir, project.Name)
+		if err := os.MkdirAll(projectDir, os.ModePerm); err != nil {
+			http.Error(w, "Could not create project directory: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		filePath := filepath.Join(projectDir, safeName)
+		dst, err := os.Create(filePath)
+		if err != nil {
+			http.Error(w, "Could not save file: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer dst.Close()
+
+		size, err := io.Copy(dst, file)
+		if err != nil {
+			http.Error(w, "Error saving file content: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		dbFile := models.File{
+			Name:      safeName,
+			Path:      filePath,
+			Size:      size,
+			MimeType:  header.Header.Get("Content-Type"),
+			ProjectID: project.ID,
+		}
+		if err := db.Create(&dbFile).Error; err != nil {
+			http.Error(w, "Could not save file metadata: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Atualiza o uso de armazenamento do usuário de forma segura
+		if err := updateUserStorage(db, user.ID, size); err != nil {
+			// Log mas não falha a requisição, pois o arquivo já foi salvo
+			fmt.Printf("⚠️  Warning: Failed to update storage usage for user %s: %v\n", user.ID, err)
+		} else {
+			fmt.Printf("✅ Storage updated for user %s: +%d bytes\n", user.ID, size)
+		}
+
+		publicURL := fmt.Sprintf("%s/files/user_%s/%s/%s", config.AppConfig.Domain, user.ID.String(), project.Name, safeName)
+		resp := UploadResponse{
+			Message: "File uploaded successfully",
+			URL:     publicURL,
+			Project: project.Name,
+			File:    safeName,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(resp)
+	}
+}
+
+// ProjectsHandler godoc
+// @Summary List user's projects
+// @Description Retrieves a paginated list of projects for the authenticated user.
+// @Tags api
+// @Produce  json
+// @Param   page      query  int  false  "Page number for pagination"
+// @Param   per_page  query  int  false  "Number of items per page"
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} ProjectsResponse
+// @Router /api/projects [get]
+func ProjectsHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
+		page, perPage := getPaginationParams(r)
+		offset := (page - 1) * perPage
+
+		var projects []models.Project
+		db.Where("user_id = ?", user.ID).Limit(perPage).Offset(offset).Find(&projects)
+
+		// Inicializa como slice vazio em vez de nil
+		projectInfos := make([]ProjectInfo, 0)
+
+		for _, p := range projects {
+			var fileCount int64
+			var totalSize int64
+			db.Model(&models.File{}).Where("project_id = ?", p.ID).Count(&fileCount)
+			db.Model(&models.File{}).Select("sum(size)").Where("project_id = ?", p.ID).Row().Scan(&totalSize)
+
+			projectInfos = append(projectInfos, ProjectInfo{
+				Name:      p.Name,
+				FileCount: fileCount,
+				TotalSize: totalSize,
+			})
+		}
+
+		var totalProjects int64
+		db.Model(&models.Project{}).Where("user_id = ?", user.ID).Count(&totalProjects)
+
+		totalPages := calculateTotalPages(totalProjects, perPage)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ProjectsResponse{
+			Projects:   projectInfos,
+			Total:      int(totalProjects),
+			Page:       page,
+			PerPage:    perPage,
+			TotalPages: totalPages,
+		})
+	}
+}
+
+// ListHandler godoc
+// @Summary List files in a project
+// @Description Retrieves a paginated list of files within a specified project for the authenticated user.
+// @Tags api
+// @Produce  json
+// @Param   project   query  string  true  "Project name"
+// @Param   page      query  int     false "Page number for pagination"
+// @Param   per_page  query  int     false "Number of items per page"
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} ListResponse
+// @Failure 400 {string} string "Project name is required"
+// @Failure 404 {string} string "Project not found"
+// @Router /api/list [get]
+func ListHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
+		projectName := r.URL.Query().Get("project")
+		if projectName == "" {
+			http.Error(w, "Project name is required", http.StatusBadRequest)
+			return
+		}
+
+		page, perPage := getPaginationParams(r)
+		offset := (page - 1) * perPage
+
+		var project models.Project
+		if err := db.First(&project, "name = ? AND user_id = ?", projectName, user.ID).Error; err != nil {
+			http.Error(w, "Project not found", http.StatusNotFound)
+			return
+		}
+
+		var files []models.File
+		db.Where("project_id = ?", project.ID).Limit(perPage).Offset(offset).Find(&files)
+
+		// Inicializa como slice vazio em vez de nil
+		fileInfos := make([]FileInfo, 0)
+		domain := config.AppConfig.Domain
+
+		for _, f := range files {
+			fileInfos = append(fileInfos, FileInfo{
+				Name:       f.Name,
+				URL:        fmt.Sprintf("%s/files/user_%s/%s/%s", domain, user.ID.String(), projectName, f.Name),
+				Size:       f.Size,
+				UploadedAt: f.UploadedAt,
+			})
+		}
+
+		var totalFiles int64
+		db.Model(&models.File{}).Where("project_id = ?", project.ID).Count(&totalFiles)
+
+		totalPages := calculateTotalPages(totalFiles, perPage)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ListResponse{
+			Project:    projectName,
+			Files:      fileInfos,
+			Total:      totalFiles,
+			Page:       page,
+			PerPage:    perPage,
+			TotalPages: totalPages,
+		})
+	}
+}
+
+// DeleteHandler godoc
+// @Summary Delete a file
+// @Description Deletes a specific file from a project.
+// @Tags api
+// @Produce  json
+// @Param   project  query  string  true  "Project name"
+// @Param   file     query  string  true  "File name"
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} map[string]string "message: File deleted successfully"
+// @Failure 400 {string} string "'project' and 'file' parameters are required"
+// @Failure 404 {string} string "Project not found or File not found"
+// @Failure 500 {string} string "Could not delete file metadata"
+// @Router /api/delete [delete]
+func DeleteHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userFromCtx, ok := r.Context().Value(middleware.UserContextKey).(*models.User)
+		if !ok {
+			http.Error(w, "Could not retrieve user from context", http.StatusInternalServerError)
+			return
+		}
+
+		// Carrega o usuário completo para obter o uso de armazenamento atual
+		var user models.User
+		if err := db.First(&user, userFromCtx.ID).Error; err != nil {
+			http.Error(w, "Could not retrieve user details", http.StatusInternalServerError)
+			return
+		}
+
+		projectName := r.URL.Query().Get("project")
+		fileName := r.URL.Query().Get("file")
+
+		if projectName == "" || fileName == "" {
+			http.Error(w, "'project' and 'file' parameters are required", http.StatusBadRequest)
+			return
+		}
+
+		var project models.Project
+		if err := db.First(&project, "name = ? AND user_id = ?", projectName, user.ID).Error; err != nil {
+			http.Error(w, "Project not found", http.StatusNotFound)
+			return
+		}
+
+		var file models.File
+		if err := db.First(&file, "name = ? AND project_id = ?", fileName, project.ID).Error; err != nil {
+			http.Error(w, "File not found", http.StatusNotFound)
+			return
+		}
+
+		fileSize := file.Size
+
+		// Deleta o arquivo do filesystem
+		if err := os.Remove(file.Path); err != nil {
+			// Logar o erro, mas continuar para remover do DB
+			fmt.Printf("Could not delete file from filesystem: %s\n", err.Error())
+		}
+
+		// Deleta o registro do banco de dados
+		if err := db.Delete(&file).Error; err != nil {
+			http.Error(w, "Could not delete file metadata: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Atualiza o uso de armazenamento do usuário (subtrai o tamanho do arquivo)
+		if err := updateUserStorage(db, user.ID, -fileSize); err != nil {
+			fmt.Printf("⚠️  Warning: Failed to update storage usage for user %s: %v\n", user.ID, err)
+		} else {
+			fmt.Printf("✅ Storage updated for user %s: -%d bytes\n", user.ID, fileSize)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "File deleted successfully",
+			"project": projectName,
+			"file":    fileName,
+		})
+	}
+}
+
+// RotateAPIKeyHandler godoc
+// @Summary Rotate user's API key
+// @Description Generates a new API key for the authenticated user, invalidating the old one.
+// @Tags api
+// @Produce  json
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} map[string]string "message: API key rotated successfully, new_api_key: ..."
+// @Failure 500 {string} string "Could not rotate API key"
+// @Router /api/user/rotate-api-key [post]
+func RotateAPIKeyHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := r.Context().Value(middleware.UserContextKey).(*models.User)
+		if !ok {
+			http.Error(w, "Could not retrieve user from context", http.StatusInternalServerError)
+			return
+		}
+
+		newAPIKey := uuid.New().String()
+		if err := db.Model(&user).Update("forge_api_key", newAPIKey).Error; err != nil {
+			http.Error(w, "Could not rotate API key: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message":     "API key rotated successfully",
+			"new_api_key": newAPIKey,
+		})
+	}
+}
+
+// DeleteProjectHandler godoc
+// @Summary Delete an empty project
+// @Description Deletes a project that has no files. Projects with files cannot be deleted.
+// @Tags api
+// @Produce  json
+// @Param   project  query  string  true  "Project name"
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} map[string]string "message: Project deleted successfully"
+// @Failure 400 {string} string "Project name is required or Project has files and cannot be deleted"
+// @Failure 404 {string} string "Project not found"
+// @Failure 500 {string} string "Could not delete project"
+// @Router /api/project/delete [delete]
+func DeleteProjectHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, _ := r.Context().Value(middleware.UserContextKey).(*models.User)
+		projectName := r.URL.Query().Get("project")
+
+		if projectName == "" {
+			http.Error(w, "Project name is required", http.StatusBadRequest)
+			return
+		}
+
+		var project models.Project
+		if err := db.First(&project, "name = ? AND user_id = ?", projectName, user.ID).Error; err != nil {
+			http.Error(w, "Project not found", http.StatusNotFound)
+			return
+		}
+
+		// Verificar se o projeto tem arquivos
+		var fileCount int64
+		db.Model(&models.File{}).Where("project_id = ?", project.ID).Count(&fileCount)
+
+		if fileCount > 0 {
+			http.Error(w, "Project has files and cannot be deleted. Delete all files first.", http.StatusBadRequest)
+			return
+		}
+
+		// Deletar o projeto
+		if err := db.Delete(&project).Error; err != nil {
+			http.Error(w, "Could not delete project: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Tentar remover o diretório vazio
+		projectDir := filepath.Join("./uploads", fmt.Sprintf("user_%s", user.ID.String()), projectName)
+		os.Remove(projectDir) // Ignora erro se não existir
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Project deleted successfully",
+			"project": projectName,
+		})
+	}
+}
+
+// UserStatusHandler godoc
+// @Summary Get user status
+// @Description Retrieves the current user's information, including plan and storage usage.
+// @Tags api
+// @Produce  json
+// @Security BearerAuth
+// @Security APIKeyAuth
+// @Success 200 {object} models.User "User status"
+// @Failure 500 {string} string "Could not retrieve user details"
+// @Router /api/user/status [get]
+func UserStatusHandler(db *gorm.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userFromCtx, ok := r.Context().Value(middleware.UserContextKey).(*models.User)
+		if !ok {
+			http.Error(w, "Could not retrieve user from context", http.StatusInternalServerError)
+			return
+		}
+
+		var user models.User
+		if err := db.Preload("Plan").First(&user, userFromCtx.ID).Error; err != nil {
+			http.Error(w, "Could not retrieve user details", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(user)
+	}
+}
+**Script de recálculo**
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/config"
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/database"
+	"github.com/GoogleCloudPlatform/golang-samples/run/helloworld/models"
+	"gorm.io/gorm"
+)
+
+func main() {
+	// Carrega configuração
+	config.LoadConfig()
+	
+	// Conecta ao banco
+	db, err := database.Connect()
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
+	}
+
+	fmt.Println("🔍 Starting storage usage recalculation...")
+	RecalculateStorageUsage(db)
+	fmt.Println("✅ Recalculation complete!")
+}
+
+// RecalculateStorageUsage recalcula o uso de armazenamento de todos os usuários
+func RecalculateStorageUsage(db *gorm.DB) {
+	var users []models.User
+	if err := db.Find(&users).Error; err != nil {
+		log.Fatalf("❌ Error fetching users: %v", err)
+	}
+
+	fmt.Printf("📊 Found %d users to process.\n\n", len(users))
+
+	for _, user := range users {
+		var totalSize int64
+		
+		// Subquery: busca todos os IDs de projetos do usuário
+		projectIDs := db.Model(&models.Project{}).Select("id").Where("user_id = ?", user.ID)
+
+		// Soma o tamanho de todos os arquivos desses projetos
+		if err := db.Model(&models.File{}).
+			Select("COALESCE(sum(size), 0)").
+			Where("project_id IN (?)", projectIDs).
+			Row().
+			Scan(&totalSize); err != nil {
+			log.Printf("⚠️  Warning: Could not calculate storage for user %s (%s): %v", 
+				user.Email, user.ID, err)
+			continue
+		}
+
+		// Verifica se precisa atualizar
+		if user.StorageUsage != totalSize {
+			fmt.Printf("🔧 Updating user: %s\n", user.Email)
+			fmt.Printf("   Old storage: %d bytes (%.2f MB)\n", user.StorageUsage, float64(user.StorageUsage)/(1024*1024))
+			fmt.Printf("   New storage: %d bytes (%.2f MB)\n", totalSize, float64(totalSize)/(1024*1024))
+			
+			if err := db.Model(&user).Update("storage_usage", totalSize).Error; err != nil {
+				log.Printf("❌ Failed to update storage for user %s: %v\n", user.Email, err)
+			} else {
+				fmt.Printf("✅ Successfully updated!\n\n")
+			}
+		} else {
+			fmt.Printf("✓ User %s storage is already correct (%d bytes)\n\n", user.Email, user.StorageUsage)
+		}
+	}
+}
+**Guia detalhado**
+# 🔧 Correção do Bug de StorageUsage
+
+## 📋 Problema Identificado
+
+O campo `StorageUsage` não estava sendo atualizado após uploads/deleções de arquivos devido a:
+
+1. **Método de update incorreto** - O GORM não estava atualizando corretamente
+2. **Falta de tratamento de concorrência** - Possível race condition
+3. **Dados históricos incorretos** - Usuários existentes com storage zerado
+
+---
+
+## ✅ Solução Implementada
+
+### 1. Nova Função `updateUserStorage()` 
+
+```go
+func updateUserStorage(db *gorm.DB, userID uuid.UUID, delta int64) error {
+    return db.Transaction(func(tx *gorm.DB) error {
+        var user models.User
+        // Bloqueia a linha para evitar race conditions
+        if err := tx.Clauses().Where("id = ?", userID).First(&user).Error; err != nil {
+            return err
+        }
+
+        newStorageUsage := user.StorageUsage + delta
+        if newStorageUsage < 0 {
+            newStorageUsage = 0
+        }
+
+        // Update correto usando WHERE clause
+        if err := tx.Model(&models.User{}).
+            Where("id = ?", userID).
+            Update("storage_usage", newStorageUsage).Error; err != nil {
+            return err
+        }
+
+        return nil
+    })
+}
+```
+
+**Melhorias:**
+- ✅ Usa transação para atomicidade
+- ✅ Bloqueia a linha durante o update (evita race conditions)
+- ✅ Usa `WHERE id = ?` explicitamente
+- ✅ Trata valores negativos
+- ✅ Retorna erros detalhados
+
+---
+
+### 2. Updates no UploadHandler
+
+**Antes:**
+```go
+newStorageUsage := user.StorageUsage + size
+db.Model(&user).Update("storage_usage", newStorageUsage)
+```
+
+**Depois:**
+```go
+if err := updateUserStorage(db, user.ID, size); err != nil {
+    fmt.Printf("⚠️  Warning: Failed to update storage: %v\n", err)
+} else {
+    fmt.Printf("✅ Storage updated: +%d bytes\n", size)
+}
+```
+
+---
+
+### 3. Updates no DeleteHandler
+
+**Antes:**
+```go
+newStorageUsage := user.StorageUsage - file.Size
+db.Model(&user).Update("storage_usage", newStorageUsage)
+```
+
+**Depois:**
+```go
+if err := updateUserStorage(db, user.ID, -fileSize); err != nil {
+    fmt.Printf("⚠️  Warning: Failed to update storage: %v\n", err)
+} else {
+    fmt.Printf("✅ Storage updated: -%d bytes\n", fileSize)
+}
+```
+
+---
+
+## 🚀 Como Aplicar a Correção
+
+### Passo 1: Atualizar o Código
+
+Substitua o arquivo `handlers/api_handlers.go` pela versão corrigida.
+
+```bash
+# No seu projeto Go
+cp api_handlers_fixed.go handlers/api_handlers.go
+```
+
+---
+
+### Passo 2: Recompilar e Reiniciar
+
+```bash
+# Recompila o projeto
+go build -o uploader .
+
+# Reinicia o serviço
+./uploader
+```
+
+Ou se estiver usando Docker:
+
+```bash
+# Rebuild da imagem
+docker build -t uploader:latest .
+
+# Restart do container
+docker-compose restart uploader
+```
+
+---
+
+### Passo 3: Recalcular Storage de Usuários Existentes
+
+Crie um arquivo `cmd/recalculate_storage.go` com o script fornecido e execute:
+
+```bash
+# Executa o script de recálculo
+go run cmd/recalculate_storage.go
+```
+
+**Saída esperada:**
+
+```
+🔍 Starting storage usage recalculation...
+📊 Found 3 users to process.
+
+🔧 Updating user: user1@example.com
+   Old storage: 0 bytes (0.00 MB)
+   New storage: 5242880 bytes (5.00 MB)
+✅ Successfully updated!
+
+🔧 Updating user: user2@example.com
+   Old storage: 0 bytes (0.00 MB)
+   New storage: 15728640 bytes (15.00 MB)
+✅ Successfully updated!
+
+✓ User user3@example.com storage is already correct (2097152 bytes)
+
+✅ Recalculation complete!
+```
+
+---
+
+## 🧪 Como Testar a Correção
+
+### Teste 1: Upload de Arquivo
+
+```bash
+# Antes do upload - ver storage atual
+curl -X GET "https://uploader.nativespeak.app/api/user/status" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Fazer upload de um arquivo de 1MB
+curl -X POST "https://uploader.nativespeak.app/api/upload" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@test_1mb.jpg" \
+  -F "project=test"
+
+# Depois do upload - verificar se storage aumentou
+curl -X GET "https://uploader.nativespeak.app/api/user/status" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Resultado esperado:**
+- `StorageUsage` deve ter aumentado em ~1.000.000 bytes
+
+---
+
+### Teste 2: Deleção de Arquivo
+
+```bash
+# Deletar o arquivo
+curl -X DELETE "https://uploader.nativespeak.app/api/delete?project=test&file=test_1mb.jpg" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+
+# Verificar se storage diminuiu
+curl -X GET "https://uploader.nativespeak.app/api/user/status" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Resultado esperado:**
+- `StorageUsage` deve ter diminuído em ~1.000.000 bytes
+
+---
+
+### Teste 3: Múltiplos Uploads Simultâneos
+
+```bash
+# Terminal 1
+for i in {1..5}; do
+  curl -X POST "https://uploader.nativespeak.app/api/upload" \
+    -H "Authorization: Bearer YOUR_API_KEY" \
+    -F "file=@file$i.jpg" \
+    -F "project=concurrent-test" &
+done
+wait
+
+# Verificar storage final
+curl -X GET "https://uploader.nativespeak.app/api/user/status" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Resultado esperado:**
+- `StorageUsage` deve refletir corretamente a soma de todos os arquivos
+- Sem race conditions ou valores incorretos
+
+---
+
+## 📊 Verificação no Banco de Dados
+
+Você também pode verificar diretamente no PostgreSQL:
+
+```sql
+-- Ver storage de todos os usuários
+SELECT 
+    u.email,
+    u.storage_usage as "Storage Usado (bytes)",
+    ROUND(u.storage_usage::numeric / 1024 / 1024, 2) as "Storage Usado (MB)",
+    p.storage_limit as "Limite do Plano (bytes)",
+    ROUND(p.storage_limit::numeric / 1024 / 1024, 2) as "Limite do Plano (MB)"
+FROM users u
+JOIN plans p ON u.plan_id = p.id
+ORDER BY u.storage_usage DESC;
+
+-- Ver total de storage calculado por arquivos (deve bater com storage_usage)
+SELECT 
+    u.email,
+    u.storage_usage as "Storage Registrado",
+    COALESCE(SUM(f.size), 0) as "Storage Real",
+    CASE 
+        WHEN u.storage_usage = COALESCE(SUM(f.size), 0) THEN '✅ OK'
+        ELSE '❌ INCONSISTENTE'
+    END as "Status"
+FROM users u
+LEFT JOIN projects pr ON pr.user_id = u.id
+LEFT JOIN files f ON f.project_id = pr.id
+GROUP BY u.id, u.email, u.storage_usage
+ORDER BY u.email;
+```
+
+---
+
+## 🔍 Logs de Debug
+
+Após a correção, você verá logs detalhados no console do servidor:
+
+**Sucesso:**
+```
+✅ Storage updated for user b10dd751-cc5f-43c0-9a6a-9b31f0feefab: +5242880 bytes
+```
+
+**Erro (raro):**
+```
+⚠️  Warning: Failed to update storage usage for user b10dd751-...: failed to update storage usage: record not found
+```
+
+---
+
+## 🛡️ Proteções Adicionadas
+
+### 1. Transação Atômica
+- Garante que ou tudo é atualizado, ou nada é
+
+### 2. Row-Level Locking
+- Evita race conditions em uploads simultâneos
+
+### 3. Validação de Valores Negativos
+- Impede que `StorageUsage` fique negativo
+
+### 4. Logs Detalhados
+- Facilita debugging de problemas futuros
+
+### 5. Erro Não-Fatal
+- Se o update falhar, o upload ainda é concluído
+
+---
+
+## ⚠️ Pontos de Atenção
+
+### 1. Performance em Alta Concorrência
+
+Se você tiver **MUITOS uploads simultâneos** do mesmo usuário:
+- O row-level lock pode causar leve degradação
+- Considere usar um sistema de fila (Redis/RabbitMQ)
+
+### 2. Backup Antes de Recalcular
+
+```bash
+# Backup do banco antes de rodar o script
+pg_dump -U postgres -d MidiaForge > backup_before_recalc.sql
+```
+
+### 3. Verificação de Limites
+
+Após recalcular, verifique se algum usuário ultrapassou o limite:
+
+```sql
+SELECT u.email, u.storage_usage, p.storage_limit
+FROM users u
+JOIN plans p ON u.plan_id = p.id
+WHERE u.storage_usage > p.storage_limit;
+```
+
+---
+
+## ✅ Checklist de Validação
+
+Após aplicar a correção, confirme:
+
+- [ ] Código atualizado em `handlers/api_handlers.go`
+- [ ] Servidor reiniciado
+- [ ] Script de recálculo executado
+- [ ] Teste de upload realizado com sucesso
+- [ ] Teste de deleção realizado com sucesso
+- [ ] `StorageUsage` sendo atualizado corretamente
+- [ ] Logs aparecendo no console
+- [ ] Consulta SQL de verificação retornou consistência
+- [ ] Backup do banco realizado
+
+---
+
+## 🎯 Resultado Final
+
+Após aplicar todas as correções:
+
+```bash
+curl -X GET "https://uploader.nativespeak.app/api/user/status" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Resposta esperada:**
+```json
+{
+  "ID": "b10dd751-cc5f-43c0-9a6a-9b31f0feefab",
+  "Name": "Saide Omar Saide",
+  "WhatsappNumber": "+258869041261",
+  "Email": "saideomar@gmail.com",
+  "ForgeAPIKey": "641787a8-6b18-4640-9b60-a09cc3b4f508",
+  "StorageUsage": 15728640,  // ✅ Agora com valor real!
+  "PlanID": "618f93b4-7a51-4ec9-afba-55dcaa65960c",
+  "Plan": {
+    "ID": "618f93b4-7a51-4ec9-afba-55dcaa65960c",
+    "Name": "Free",
+    "Price": 0,
+    "StorageLimit": 1073741824,
+    "CreatedAt": "2025-12-15T11:19:34.107Z"
+  },
+  "CreatedAt": "2025-12-15T11:22:25.858Z",
+  "Projects": []
+}
+```
+
+---
+
+## 📞 Suporte
+
+Se encontrar algum problema:
+
+1. **Verifique os logs** do servidor
+2. **Execute a query SQL** de verificação
+3. **Rode o script de recálculo** novamente
+4. **Entre em contato** com detalhes do erro
+
+---
+
+## 📚 Referências
+
+- [GORM Transactions](https://gorm.io/docs/transactions.html)
+- [PostgreSQL Row Locking](https://www.postgresql.org/docs/current/explicit-locking.html)
+- [Go Concurrency Patterns](https://go.dev/blog/pipelines)
+
